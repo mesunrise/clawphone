@@ -29,6 +29,7 @@ class VideoPublishCoordinator(
     private val batchCollector = MessageBatchCollector(scope) { batch ->
         handleBatchComplete(batch)
     }
+    private val taskParser = VideoPublishTaskParser()
 
     /**
      * 初始化（在 ChannelManager 初始化后调用）
@@ -94,17 +95,23 @@ class VideoPublishCoordinator(
     private fun handleBatchComplete(batch: MessageBatch) {
         XLog.i(TAG, "批次完成: chatId=${batch.chatId}, videos=${batch.videos.size}, texts=${batch.textMessages.size}")
 
-        // TODO: Phase 2 - 解析自然语言指令
-        // TODO: Phase 3 - 创建发布任务并执行
+        // 解析任务
+        val taskRequest = taskParser.parse(batch)
+        if (taskRequest == null) {
+            XLog.w(TAG, "任务解析失败或无发布意图，忽略批次")
+            return
+        }
 
+        XLog.i(TAG, "任务解析成功:")
+        XLog.i(TAG, "  - 视频数量: ${taskRequest.videos.size}")
+        XLog.i(TAG, "  - 话题: ${taskRequest.topics}")
+        XLog.i(TAG, "  - 描述: ${taskRequest.description}")
+
+        // TODO: Phase 3 - 创建发布任务并执行
         // 临时：仅记录日志
         XLog.i(TAG, "视频列表:")
-        batch.videos.forEach { video ->
+        taskRequest.videos.forEach { video ->
             XLog.i(TAG, "  - ${video.fileName}: ${video.localPath}")
-        }
-        XLog.i(TAG, "文本指令:")
-        batch.textMessages.forEach { text ->
-            XLog.i(TAG, "  - $text")
         }
     }
 }

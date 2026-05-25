@@ -55,7 +55,7 @@ class MessageBatchCollector(
             MessageBatch(chatId = chatId)
         }
 
-        batch.videos.add(VideoItem(localPath = videoPath, fileName = fileName))
+        batch.videos.add(com.clawp.android.task.VideoItem(localPath = videoPath, fileName = fileName))
 
         // 视频消息不立即触发，等待文本指令或超时
         resetTimer(chatId)
@@ -102,25 +102,6 @@ class MessageBatchCollector(
  */
 data class MessageBatch(
     val chatId: String,
-    val videos: MutableList<VideoItem> = mutableListOf(),
+    val videos: MutableList<com.clawp.android.task.VideoItem> = mutableListOf(),
     val textMessages: MutableList<String> = mutableListOf()
 )
-
-/**
- * 视频项
- */
-data class VideoItem(
-    val localPath: String,
-    val fileName: String,
-    var status: PublishStatus = PublishStatus.PENDING
-)
-
-/**
- * 发布状态
- */
-enum class PublishStatus {
-    PENDING,      // 待发布
-    PUBLISHING,   // 发布中
-    SUCCESS,      // 成功
-    FAILED        // 失败
-}
