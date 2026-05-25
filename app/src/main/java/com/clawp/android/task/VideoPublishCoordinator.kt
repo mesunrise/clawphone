@@ -107,11 +107,11 @@ class VideoPublishCoordinator(
         XLog.i(TAG, "  - 话题: ${taskRequest.topics}")
         XLog.i(TAG, "  - 描述: ${taskRequest.description}")
 
-        // TODO: Phase 3 - 创建发布任务并执行
-        // 临时：仅记录日志
-        XLog.i(TAG, "视频列表:")
-        taskRequest.videos.forEach { video ->
-            XLog.i(TAG, "  - ${video.fileName}: ${video.localPath}")
-        }
+        // 创建编排器并执行任务
+        val orchestrator = VideoPublishOrchestrator(
+            channel = Channel.FEISHU,
+            chatId = batch.chatId
+        )
+        orchestrator.execute(taskRequest)
     }
 }
