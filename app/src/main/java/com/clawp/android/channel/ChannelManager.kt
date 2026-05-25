@@ -1,5 +1,6 @@
 package com.clawp.android.channel
 
+import android.content.Context
 import com.clawp.android.utils.XLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +20,7 @@ object ChannelManager {
 
     private val handlers = mutableMapOf<Channel, ChannelHandler>()
     private var messageListener: OnMessageReceivedListener? = null
+    private var fileMessageListener: OnFileMessageReceivedListener? = null
 
     /**
      * 收到消息的回调接口
@@ -27,9 +29,27 @@ object ChannelManager {
         fun onMessageReceived(channel: Channel, message: String, messageID: String)
     }
 
+    /**
+     * 收到文件/视频消息的回调接口
+     */
+    interface OnFileMessageReceivedListener {
+        fun onFileMessageReceived(
+            channel: Channel,
+            fileKey: String,
+            fileName: String,
+            messageID: String,
+            chatId: String
+        )
+    }
+
     @JvmStatic
     fun setOnMessageReceivedListener(listener: OnMessageReceivedListener?) {
         this.messageListener = listener
+    }
+
+    @JvmStatic
+    fun setOnFileMessageReceivedListener(listener: OnFileMessageReceivedListener?) {
+        this.fileMessageListener = listener
     }
 
     /**
@@ -38,10 +58,12 @@ object ChannelManager {
     @JvmStatic
     @JvmOverloads
     fun init(
+        context: Context,
         feishuAppId: String? = null,
         feishuAppSecret: String? = null,
     ) {
         handlers[Channel.FEISHU] = com.clawp.android.channel.feishu.FeiShuChannelHandler(
+            context,
             scope,
             feishuAppId?.takeIf { it.isNotEmpty() } ?: "",
             feishuAppSecret?.takeIf { it.isNotEmpty() } ?: "",
@@ -150,5 +172,28 @@ object ChannelManager {
     @JvmStatic
     fun dispatchMessage(channel: Channel, message: String, messageID: String) {
         messageListener?.onMessageReceived(channel, message, messageID)
+    }
+
+    /**
+     * 供各 ChannelHandler 内部调用，将收到的文件消息分发给注册的监听器。
+     */
+    @JvmStatic
+    fun dispatchFileMessage(
+        channel: Channel,
+        fileKey: String,
+        fileName: String,
+        messageID: String,
+        chatId: String
+    ) {
+        fileMessageListener?.onFileMessageReceived(channel, fileKey, fileName, messageID, chatId)
+    }
+
+    /**
+     * 获取飞书文件下载器（用于 VideoPublishCoordinator）
+     */
+    @JvmStatic
+    fun getFeiShuFileDownloader(): com.clawp.android.channel.feishu.FeiShuFileDownloader? {
+        val handler = handlers[Channel.FEISHU] as? com.clawp.android.channel.feishu.FeiShuChannelHandler
+        return handler?.fileDownloader
     }
 }

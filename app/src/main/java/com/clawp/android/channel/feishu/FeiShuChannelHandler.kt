@@ -1,5 +1,6 @@
 package com.clawp.android.channel.feishu
 
+import android.content.Context
 import com.clawp.android.channel.Channel
 import com.clawp.android.channel.ChannelHandler
 import com.clawp.android.channel.ChannelManager
@@ -20,6 +21,7 @@ import org.json.JSONObject
 import java.io.File
 
 class FeiShuChannelHandler(
+    private val context: Context,
     private val scope: CoroutineScope,
     private var appId: String,
     private var appSecret: String,
@@ -29,6 +31,8 @@ class FeiShuChannelHandler(
 
     private var apiClient: com.lark.oapi.Client? = null
     private var wsClient: FeishuWsClient? = null
+    var fileDownloader: FeiShuFileDownloader? = null
+        private set
 
     @Volatile
     private var lastMessageId: String? = null
@@ -43,6 +47,7 @@ class FeiShuChannelHandler(
                         val messageId = event.event.message.messageId
                         val messageType = event.event.message.messageType
                         val createTime = event.event.message.createTime
+                        val chatId = event.event.message.chatId ?: ""
 
                         val fiveMinutesInMillis = 5 * 60 * 1000
                         val currentTime = System.currentTimeMillis()
@@ -51,15 +56,32 @@ class FeiShuChannelHandler(
                             return
                         }
 
-                        if ("text" == messageType) {
-                            val rawContent = event.event.message.content
-                            val text = try {
-                                JSONObject(rawContent).optString("text", "")
-                            } catch (e: Exception) {
-                                rawContent
+                        when (messageType) {
+                            "text" -> {
+                                val rawContent = event.event.message.content
+                                val text = try {
+                                    JSONObject(rawContent).optString("text", "")
+                                } catch (e: Exception) {
+                                    rawContent
+                                }
+                                lastMessageId = messageId
+                                ChannelManager.dispatchMessage(channel, text, messageId)
                             }
-                            lastMessageId = messageId
-                            ChannelManager.dispatchMessage(channel, text, messageId)
+                            "file", "video", "media" -> {
+                                val rawContent = event.event.message.content
+                                try {
+                                    val contentJson = JSONObject(rawContent)
+                                    val fileKey = contentJson.optString("file_key", "")
+                                    val fileName = contentJson.optString("file_name", "unknown")
+
+                                    if (fileKey.isNotEmpty()) {
+                                        XLog.i(TAG, "[${channel.displayName}] 收到文件消息: fileKey=$fileKey, fileName=$fileName")
+                                        ChannelManager.dispatchFileMessage(channel, fileKey, fileName, messageId, chatId)
+                                    }
+                                } catch (e: Exception) {
+                                    XLog.e(TAG, "[${channel.displayName}] 解析文件消息失败", e)
+                                }
+                            }
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -79,6 +101,11 @@ class FeiShuChannelHandler(
 
         apiClient = com.lark.oapi.Client.newBuilder(appId, appSecret).build()
 
+        // 创建文件下载器
+        apiClient?.let { client ->
+            fileDownloader = FeiShuFileDownloader(context, client)
+        }
+
         wsClient = FeishuWsClient.Builder(appId, appSecret)
             .eventHandler(eventHandler)
             .build()
@@ -97,6 +124,7 @@ class FeiShuChannelHandler(
         val oldWsClient = wsClient ?: return
         wsClient = null
         apiClient = null
+        fileDownloader = null
         lastMessageId = null
 
         try {

@@ -4,6 +4,7 @@ import android.app.Application
 import com.clawp.android.agent.DefaultAgentService
 import com.clawp.android.channel.ChannelManager
 import com.clawp.android.service.ForegroundService
+import com.clawp.android.task.VideoPublishCoordinator
 import com.clawp.android.tool.ToolRegistry
 import com.clawp.android.utils.KVUtils
 import com.clawp.android.utils.XLog
@@ -19,6 +20,8 @@ class ClawApplication : Application() {
             private set
     }
 
+    private lateinit var videoPublishCoordinator: VideoPublishCoordinator
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -31,6 +34,9 @@ class ClawApplication : Application() {
         // 网络日志输出到文件（调试时设为 true）
         DefaultAgentService.FILE_LOGGING_ENABLED = BuildConfig.DEBUG
         DefaultAgentService.FILE_LOGGING_CACHE_DIR = cacheDir
+
+        // 初始化视频发布协调器
+        videoPublishCoordinator = VideoPublishCoordinator(this)
 
         // 启动前台服务
         if (!ForegroundService.isRunning()) {
@@ -50,8 +56,17 @@ class ClawApplication : Application() {
 
     private fun initChannels() {
         ChannelManager.init(
+            context = this,
             feishuAppId = KVUtils.getFeishuAppId(),
             feishuAppSecret = KVUtils.getFeishuAppSecret()
         )
+
+        // 初始化视频发布协调器
+        videoPublishCoordinator.init()
+
+        // 设置文件下载器
+        ChannelManager.getFeiShuFileDownloader()?.let { downloader ->
+            videoPublishCoordinator.setFileDownloader(downloader)
+        }
     }
 }
