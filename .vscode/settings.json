@@ -1,0 +1,17 @@
+{
+    "claudeCode.environmentVariables": [
+        {
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "p0c0llsb1lhrz551000dgyz7hacwlpa1q09j6izk",
+    "ANTHROPIC_BASE_URL": "https://api.gpugeek.com/v1",
+    "ANTHROPIC_MODEL": "Vendor2/Claude-4.6-opus",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "Vendor2/Claude-4.6-opus",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "Vendor2/Claude-4.6-opus",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "Vendor2/Claude-4.6-opus"
+  },
+  "effortLevel": "high"
+}
+
+    ],
+    "claudeCode.useTerminal": true
+}

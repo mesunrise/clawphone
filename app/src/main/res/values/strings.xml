@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">CLAWP</string>
+    <string name="accessibility_service_description">CLAWP 无障碍服务，用于自动化操作抖音等应用</string>
+
+    <!-- 主页 -->
+    <string name="home_title">CLAWP</string>
+    <string name="home_accessibility_status">无障碍服务状态</string>
+    <string name="home_accessibility_enabled">已启用</string>
+    <string name="home_accessibility_disabled">未启用</string>
+    <string name="home_btn_open_accessibility">开启无障碍服务</string>
+    <string name="home_btn_settings">设置</string>
+    <string name="home_llm_config_status">LLM 配置状态</string>
+    <string name="home_llm_configured">已配置</string>
+    <string name="home_llm_not_configured">未配置</string>
+    <string name="home_feishu_status">飞书通道状态</string>
+    <string name="home_feishu_connected">已连接</string>
+    <string name="home_feishu_disconnected">未连接</string>
+
+    <!-- 设置页 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_llm_config">LLM 配置</string>
+    <string name="settings_feishu_config">飞书配置</string>
+    <string name="settings_llm_api_key">API Key</string>
+    <string name="settings_llm_base_url">Base URL (可选)</string>
+    <string name="settings_llm_model_name">Model Name (可选)</string>
+    <string name="settings_feishu_app_id">飞书 App ID</string>
+    <string name="settings_feishu_app_secret">飞书 App Secret</string>
+    <string name="settings_btn_save">保存</string>
+    <string name="settings_save_success">保存成功</string>
+    <string name="settings_save_failed">保存失败</string>
+    <string name="settings_hint_api_key">请输入 Anthropic API Key</string>
+    <string name="settings_hint_base_url">默认: https://api.anthropic.com</string>
+    <string name="settings_hint_model_name">默认: claude-opus-4-20250514</string>
+    <string name="settings_hint_feishu_app_id">请输入飞书 App ID</string>
+    <string name="settings_hint_feishu_app_secret">请输入飞书 App Secret</string>
+</resources>

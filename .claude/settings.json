@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "read": [
+      "/personal/ai_workspace/clawp/**"
+    ],
+    "write": [
+      "/personal/ai_workspace/clawp/**"
+    ],
+    "bash": [
+      {
+        "command": "ls",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "tree",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "cat",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "find",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "grep",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "mkdir",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "mv",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "cp",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "rm",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "wget",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "unzip",
+        "cwd": "/personal/ai_workspace/clawp"
+      },
+      {
+        "command": "git",
+        "cwd": "/personal/ai_workspace/clawp"
+      }
+    ]
+  }
+}
