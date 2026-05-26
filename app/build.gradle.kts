@@ -38,6 +38,8 @@ android {
 
     buildTypes {
         getByName("debug") {
+            // Debug builds use the default debug keystore
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
