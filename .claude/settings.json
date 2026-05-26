@@ -1,4 +1,17 @@
 {
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/personal/ai_workspace/clawp/scripts/save_conversation.sh"
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "read": [
       "/personal/ai_workspace/clawp/**"

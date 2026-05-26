@@ -45,6 +45,14 @@
             android:exported="false"
             android:screenOrientation="portrait" />
 
+        <!-- 剪贴板读取（ClipboardTool 使用） -->
+        <activity
+            android:name=".tool.impl.ClipboardReaderActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
         <!-- 无障碍服务 -->
         <service
             android:name=".service.ClawAccessibilityService"

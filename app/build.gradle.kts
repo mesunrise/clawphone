@@ -10,11 +10,7 @@ plugins {
 
 android {
     namespace = "com.clawp.android"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     signingConfigs {
         create("release") {
@@ -89,6 +85,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.constraintlayout)
     implementation(libs.gson)
+    implementation(libs.coroutines.android)
 
     // Feishu (Lark) SDK
     implementation(libs.oapi.sdk)

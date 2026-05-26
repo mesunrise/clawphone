@@ -1,6 +1,7 @@
 [versions]
 agp = "9.1.0"
-kotlin = "1.9.22"
+kotlin = "2.0.21"
+coroutines = "1.8.1"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -52,6 +53,7 @@ easyfloat = { module = "com.github.princekin-f:EasyFloat", version.ref = "easyfl
 zxing = { module = "com.google.zxing:core", version.ref = "zxing" }
 oapi-sdk = { module = "com.larksuite.oapi:oapi-sdk", version.ref = "oapi" }
 nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
+coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
