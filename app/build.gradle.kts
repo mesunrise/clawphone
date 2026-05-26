@@ -29,7 +29,7 @@ android {
 
     defaultConfig {
         applicationId = "com.clawp.android"
-        minSdk = 30
+        minSdk = 26
         targetSdk = 36
         versionCode = getBuildNumber()
         versionName = "0.1.${versionCode}"
