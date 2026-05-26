@@ -57,8 +57,14 @@ class FeiShuFileDownloader(
                     throw Exception("飞书 API 返回错误: code=${resp.code}, msg=${resp.msg}")
                 }
 
-                val fileBytes = resp.data.file
-                if (fileBytes == null || fileBytes.isEmpty()) {
+                // 飞书 SDK 返回的是文件对象，需要写入临时文件再读取
+                val tempFile = File(context.cacheDir, "feishu_temp_${System.currentTimeMillis()}_$fileName")
+                resp.writeFile(tempFile.absolutePath)
+
+                val fileBytes = tempFile.readBytes()
+                tempFile.delete()
+
+                if (fileBytes.isEmpty()) {
                     throw Exception("文件内容为空")
                 }
 

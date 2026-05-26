@@ -121,38 +121,40 @@ class VideoPublishOrchestrator(
         var taskSuccess = false
 
         val agentService = DefaultAgentService()
+        agentService.initialize(agentConfig)
         agentService.executeTask(
-            config = agentConfig,
-            initialMessage = "开始发布视频",
+            userPrompt = "开始发布视频",
             callback = object : AgentCallback {
-                override fun onStart() {
-                    XLog.i(TAG, "Agent 开始执行")
+                override fun onLoopStart(round: Int) {
+                    XLog.i(TAG, "Agent 第 $round 轮开始")
                 }
 
-                override fun onThinking(content: String) {
-                    // 思考过程，不输出
-                }
-
-                override fun onResponse(content: String) {
+                override fun onContent(round: Int, content: String) {
                     XLog.d(TAG, "Agent 响应: $content")
                 }
 
-                override fun onToolCall(toolName: String, arguments: String) {
-                    XLog.d(TAG, "工具调用: $toolName($arguments)")
+                override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
+                    XLog.d(TAG, "工具调用: $toolName($parameters)")
                 }
 
-                override fun onToolResult(toolName: String, result: String) {
-                    XLog.d(TAG, "工具结果: $toolName -> ${result.take(200)}")
+                override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: com.clawp.android.tool.ToolResult) {
+                    XLog.d(TAG, "工具结果: $toolName -> ${result.toString().take(200)}")
                 }
 
-                override fun onComplete(success: Boolean, finalMessage: String) {
-                    XLog.i(TAG, "Agent 完成: success=$success, message=$finalMessage")
+                override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
+                    XLog.i(TAG, "Agent 完成: rounds=$round, tokens=$totalTokens, answer=$finalAnswer")
                     taskCompleted = true
-                    taskSuccess = success
+                    taskSuccess = true
                 }
 
-                override fun onError(error: String) {
-                    XLog.e(TAG, "Agent 错误: $error")
+                override fun onError(round: Int, error: Exception, totalTokens: Int) {
+                    XLog.e(TAG, "Agent 错误: ${error.message}")
+                    taskCompleted = true
+                    taskSuccess = false
+                }
+
+                override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
+                    XLog.w(TAG, "系统弹窗拦截")
                     taskCompleted = true
                     taskSuccess = false
                 }
