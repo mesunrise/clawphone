@@ -384,7 +384,9 @@ class DefaultAgentService : AgentService {
                 val toolArgs = toolRequest.arguments()
                 callback.onToolCall(iterations, toolRequest.id(), toolName, toolArgs)
 
-                // 检测系统弹窗拦截（finish 工具被调用时，检查是否有系统弹窗）
+                // TODO: 检测系统弹窗拦截（finish 工具被调用时，检查是否有系统弹窗）
+                // 需要在 ClawAccessibilityService 中实现 hasSystemDialog() 方法
+                /*
                 if (toolName == "finish") {
                     val service = ClawAccessibilityService.getInstance()
                     if (service != null && service.hasSystemDialog()) {
@@ -393,6 +395,7 @@ class DefaultAgentService : AgentService {
                         return
                     }
                 }
+                */
 
                 val result = LangChain4jToolBridge.executeToolRequest(toolRequest)
                 val displayName = ToolRegistry.getInstance().getTool(toolName)?.getDisplayName() ?: toolName

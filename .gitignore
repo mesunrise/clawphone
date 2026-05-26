@@ -23,3 +23,16 @@ output.json
 .cxx/
 *.keystore
 !debug.keystore
+
+# Claude Code
+.claude/scheduled_tasks.json
+.claude/scheduled_tasks.lock
+.claude/session_working_context.md
+.claude/settings.local.json
+
+# Build outputs
+app/build/
+app/release/
+
+# Docs
+docs/conversations/

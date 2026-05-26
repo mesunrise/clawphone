@@ -139,6 +139,19 @@ androidComponents {
     }
 }
 
+// Copy APK to app/release directory after build
+afterEvaluate {
+    tasks.register<Copy>("copyApkToRelease") {
+        from(layout.buildDirectory.dir("outputs/apk/debug"))
+        into(layout.projectDirectory.dir("release"))
+        include("*.apk")
+    }
+
+    tasks.named("assembleDebug") {
+        finalizedBy("copyApkToRelease")
+    }
+}
+
 fun getDateTime(): String {
     val df = SimpleDateFormat("yyyyMMdd_HHmmss")
     return df.format(Date())

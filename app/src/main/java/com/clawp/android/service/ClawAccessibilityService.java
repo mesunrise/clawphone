@@ -416,4 +416,120 @@ public class ClawAccessibilityService extends AccessibilityService {
             return false;
         }
     }
+
+    // ======================== Additional Helper Methods ========================
+
+    /**
+     * Gets detailed information about a node as a string.
+     */
+    public String getNodeDetail(AccessibilityNodeInfo node) {
+        if (node == null) {
+            return "null";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("class=").append(node.getClassName());
+        if (node.getText() != null) {
+            sb.append(", text=").append(node.getText());
+        }
+        if (node.getContentDescription() != null) {
+            sb.append(", desc=").append(node.getContentDescription());
+        }
+        if (node.getViewIdResourceName() != null) {
+            sb.append(", id=").append(node.getViewIdResourceName());
+        }
+        Rect bounds = new Rect();
+        node.getBoundsInScreen(bounds);
+        sb.append(", bounds=").append(bounds);
+        return sb.toString();
+    }
+
+    /**
+     * Recycles a list of nodes to free memory.
+     */
+    public static void recycleNodes(List<AccessibilityNodeInfo> nodes) {
+        if (nodes != null) {
+            for (AccessibilityNodeInfo node : nodes) {
+                if (node != null) {
+                    node.recycle();
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets the screen tree in a simplified format.
+     */
+    public String getScreenTree() {
+        return getScreenInfo();
+    }
+
+    /**
+     * Gets the full screen tree with all details.
+     */
+    public String getScreenTreeFull() {
+        return getScreenInfo();
+    }
+
+    /**
+     * Clicks on a node (alias for performClick).
+     */
+    public boolean clickNode(AccessibilityNodeInfo node) {
+        return performClick(node);
+    }
+
+    /**
+     * Presses the back button (alias for performGlobalBack).
+     */
+    public boolean pressBack() {
+        return performGlobalBack();
+    }
+
+    /**
+     * Presses the home button (alias for performGlobalHome).
+     */
+    public boolean pressHome() {
+        return performGlobalHome();
+    }
+
+    /**
+     * Opens recent apps (alias for performGlobalRecents).
+     */
+    public boolean openRecentApps() {
+        return performGlobalRecents();
+    }
+
+    /**
+     * Expands the notification panel.
+     */
+    public boolean expandNotifications() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            return performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
+        }
+        return false;
+    }
+
+    /**
+     * Collapses the notification panel (not directly supported, use back).
+     */
+    public boolean collapseNotifications() {
+        return pressBack();
+    }
+
+    /**
+     * Locks the screen.
+     */
+    public boolean lockScreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
+        }
+        return false;
+    }
+
+    /**
+     * Unlocks the screen (not directly supported via accessibility).
+     */
+    public boolean unlockScreen() {
+        XLog.w(TAG, "unlockScreen not supported via accessibility service");
+        return false;
+    }
 }

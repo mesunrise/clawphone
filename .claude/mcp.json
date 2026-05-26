@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "replicant": {
+      "command": "npx",
+      "args": ["replicant-mcp"]
+    }
+  }
+}
