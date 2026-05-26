@@ -31,8 +31,8 @@ android {
         applicationId = "com.clawp.android"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = getBuildNumber()
+        versionName = "0.1.${versionCode}"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -157,4 +157,16 @@ afterEvaluate {
 fun getDateTime(): String {
     val df = SimpleDateFormat("yyyyMMdd_HHmmss")
     return df.format(Date())
+}
+
+fun getBuildNumber(): Int {
+    val buildNumberFile = File(rootProject.projectDir, "build_number.txt")
+    if (!buildNumberFile.exists()) {
+        buildNumberFile.writeText("1")
+        return 1
+    }
+    val currentNumber = buildNumberFile.readText().trim().toIntOrNull() ?: 1
+    val nextNumber = currentNumber + 1
+    buildNumberFile.writeText(nextNumber.toString())
+    return nextNumber
 }
