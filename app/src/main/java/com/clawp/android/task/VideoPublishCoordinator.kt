@@ -194,26 +194,33 @@ class VideoPublishCoordinator(
      * 批次完成处理
      */
     private fun handleBatchComplete(batch: MessageBatch) {
-        XLog.i(TAG, "批次完成: chatId=${batch.chatId}, videos=${batch.videos.size}, texts=${batch.textMessages.size}")
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "handleBatchComplete() 被调用")
+        XLog.i(TAG, "  - chatId: ${batch.chatId}")
+        XLog.i(TAG, "  - videos: ${batch.videos.size}")
+        XLog.i(TAG, "  - texts: ${batch.textMessages.size}")
 
         // 解析任务
         val taskRequest = taskParser.parse(batch)
         if (taskRequest == null) {
-            XLog.w(TAG, "任务解析失败或无发布意图，忽略批次")
+            XLog.w(TAG, "  - 任务解析失败或无发布意图，忽略批次")
+            XLog.i(TAG, "========================================")
             return
         }
 
-        XLog.i(TAG, "任务解析成功:")
-        XLog.i(TAG, "  - 视频数量: ${taskRequest.videos.size}")
-        XLog.i(TAG, "  - 话题: ${taskRequest.topics}")
-        XLog.i(TAG, "  - 描述: ${taskRequest.description}")
+        XLog.i(TAG, "  - 任务解析成功:")
+        XLog.i(TAG, "    - 视频数量: ${taskRequest.videos.size}")
+        XLog.i(TAG, "    - 话题: ${taskRequest.topics}")
+        XLog.i(TAG, "    - 描述: ${taskRequest.description}")
 
         // 创建编排器并执行任务
+        XLog.i(TAG, "  - 创建 VideoPublishOrchestrator 并执行任务")
         val orchestrator = VideoPublishOrchestrator(
             channel = Channel.FEISHU,
             chatId = batch.chatId
         )
         orchestrator.execute(taskRequest)
+        XLog.i(TAG, "========================================")
     }
 
     /**

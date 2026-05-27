@@ -27,35 +27,51 @@ class VideoPublishTaskParser {
      * 解析消息批次，生成发布任务请求
      */
     fun parse(batch: MessageBatch): PublishTaskRequest? {
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "VideoPublishTaskParser.parse() 被调用")
+        XLog.i(TAG, "  - chatId: ${batch.chatId}")
+        XLog.i(TAG, "  - videos: ${batch.videos.size}")
+        XLog.i(TAG, "  - textMessages: ${batch.textMessages.size}")
+
         if (batch.videos.isEmpty()) {
-            XLog.w(TAG, "批次无视频，无法生成任务")
+            XLog.w(TAG, "  - 批次无视频，无法生成任务")
+            XLog.i(TAG, "========================================")
             return null
         }
 
         // 合并所有文本消息
         val fullText = batch.textMessages.joinToString(" ")
+        XLog.i(TAG, "  - 合并后的文本: $fullText")
 
         // 检查是否包含发布意图
-        if (!containsPublishIntent(fullText)) {
-            XLog.w(TAG, "未检测到发布意图: $fullText")
+        val hasIntent = containsPublishIntent(fullText)
+        XLog.i(TAG, "  - 是否包含发布意图: $hasIntent")
+
+        if (!hasIntent) {
+            XLog.w(TAG, "  - 未检测到发布意图，返回 null")
+            XLog.i(TAG, "========================================")
             return null
         }
 
         // 提取话题
         val topics = extractTopics(fullText)
+        XLog.i(TAG, "  - 提取到的话题: $topics")
 
         // 提取描述（去掉话题后的剩余文本）
         val description = extractDescription(fullText, topics)
+        XLog.i(TAG, "  - 提取到的描述: $description")
 
-        XLog.i(TAG, "解析结果: topics=$topics, description=$description")
-
-        return PublishTaskRequest(
+        val request = PublishTaskRequest(
             videos = batch.videos,
             topics = topics,
             description = description,
             chatId = batch.chatId,
             rawInstruction = fullText
         )
+
+        XLog.i(TAG, "  - 任务解析成功，返回 PublishTaskRequest")
+        XLog.i(TAG, "========================================")
+        return request
     }
 
     /**

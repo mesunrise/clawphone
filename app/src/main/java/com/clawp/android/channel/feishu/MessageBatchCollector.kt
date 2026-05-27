@@ -27,38 +27,55 @@ class MessageBatchCollector(
      * 添加文本消息
      */
     fun addTextMessage(chatId: String, text: String, messageId: String) {
-        XLog.i(TAG, "收到文本消息: chatId=$chatId, text=$text")
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "MessageBatchCollector.addTextMessage() 被调用")
+        XLog.i(TAG, "  - chatId: $chatId")
+        XLog.i(TAG, "  - text: $text")
+        XLog.i(TAG, "  - messageId: $messageId")
 
         val batch = batches.getOrPut(chatId) {
+            XLog.i(TAG, "  - 创建新批次: chatId=$chatId")
             MessageBatch(chatId = chatId)
         }
 
         batch.textMessages.add(text)
+        XLog.i(TAG, "  - 当前批次状态: videos=${batch.videos.size}, texts=${batch.textMessages.size}")
 
         // 文本消息触发批次完成（或重置定时器）
         if (batch.videos.isNotEmpty()) {
             // 已有视频，立即触发
+            XLog.i(TAG, "  - 已有视频，立即触发批次完成")
             completeBatch(chatId)
         } else {
             // 还没有视频，重置定时器等待
+            XLog.i(TAG, "  - 还没有视频，重置定时器等待")
             resetTimer(chatId)
         }
+        XLog.i(TAG, "========================================")
     }
 
     /**
      * 添加视频消息
      */
     fun addVideoMessage(chatId: String, videoPath: String, fileName: String) {
-        XLog.i(TAG, "收到视频消息: chatId=$chatId, fileName=$fileName")
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "MessageBatchCollector.addVideoMessage() 被调用")
+        XLog.i(TAG, "  - chatId: $chatId")
+        XLog.i(TAG, "  - videoPath: $videoPath")
+        XLog.i(TAG, "  - fileName: $fileName")
 
         val batch = batches.getOrPut(chatId) {
+            XLog.i(TAG, "  - 创建新批次: chatId=$chatId")
             MessageBatch(chatId = chatId)
         }
 
         batch.videos.add(com.clawp.android.task.VideoItem(localPath = videoPath, fileName = fileName))
+        XLog.i(TAG, "  - 当前批次状态: videos=${batch.videos.size}, texts=${batch.textMessages.size}")
 
         // 视频消息不立即触发，等待文本指令或超时
+        XLog.i(TAG, "  - 视频消息不立即触发，重置定时器等待文本指令")
         resetTimer(chatId)
+        XLog.i(TAG, "========================================")
     }
 
     /**
@@ -82,17 +99,29 @@ class MessageBatchCollector(
      * 完成批次并触发回调
      */
     private fun completeBatch(chatId: String) {
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "completeBatch() 被调用: chatId=$chatId")
+
         timers[chatId]?.cancel()
         timers.remove(chatId)
 
-        val batch = batches.remove(chatId) ?: return
-
-        if (batch.videos.isEmpty()) {
-            XLog.i(TAG, "批次无视频，忽略: chatId=$chatId")
+        val batch = batches.remove(chatId)
+        if (batch == null) {
+            XLog.w(TAG, "  - 批次不存在，已被移除")
+            XLog.i(TAG, "========================================")
             return
         }
 
-        XLog.i(TAG, "批次完成: chatId=$chatId, videos=${batch.videos.size}, texts=${batch.textMessages.size}")
+        XLog.i(TAG, "  - 批次内容: videos=${batch.videos.size}, texts=${batch.textMessages.size}")
+
+        if (batch.videos.isEmpty()) {
+            XLog.i(TAG, "  - 批次无视频，忽略")
+            XLog.i(TAG, "========================================")
+            return
+        }
+
+        XLog.i(TAG, "  - 批次完成，触发回调 onBatchComplete()")
+        XLog.i(TAG, "========================================")
         onBatchComplete(batch)
     }
 }

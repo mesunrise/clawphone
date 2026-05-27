@@ -43,7 +43,12 @@ class VideoPublishOrchestrator(
     }
 
     private suspend fun executeInternal(taskRequest: PublishTaskRequest) {
-        XLog.i(TAG, "开始执行发布任务: ${taskRequest.videos.size} 个视频")
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "VideoPublishOrchestrator.executeInternal() 被调用")
+        XLog.i(TAG, "  - 视频数量: ${taskRequest.videos.size}")
+        XLog.i(TAG, "  - 话题: ${taskRequest.topics}")
+        XLog.i(TAG, "  - 描述: ${taskRequest.description}")
+        XLog.i(TAG, "========================================")
 
         progressReporter.reportStart(taskRequest.videos.size)
 
@@ -97,6 +102,13 @@ class VideoPublishOrchestrator(
         topics: List<String>,
         description: String?
     ): Boolean {
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "publishSingleVideo() 被调用")
+        XLog.i(TAG, "  - videoPath: ${video.localPath}")
+        XLog.i(TAG, "  - fileName: ${video.fileName}")
+        XLog.i(TAG, "  - topics: $topics")
+        XLog.i(TAG, "  - description: $description")
+
         // 构造系统提示词
         val systemPrompt = DouyinPublishPrompts.buildPrompt(
             videoPath = video.localPath,
@@ -104,7 +116,7 @@ class VideoPublishOrchestrator(
             description = description
         )
 
-        XLog.d(TAG, "系统提示词:\n$systemPrompt")
+        XLog.i(TAG, "  - 系统提示词已构建，长度: ${systemPrompt.length}")
 
         // 创建 Agent 配置
         val agentConfig = AgentConfig(
@@ -115,6 +127,9 @@ class VideoPublishOrchestrator(
             systemPrompt = systemPrompt,
             maxIterations = MAX_ITERATIONS_PER_VIDEO
         )
+
+        XLog.i(TAG, "  - Agent 配置已创建")
+        XLog.i(TAG, "  - 开始执行 Agent 任务...")
 
         // 执行 Agent 任务
         var taskCompleted = false
@@ -170,9 +185,12 @@ class VideoPublishOrchestrator(
 
         if (!taskCompleted) {
             XLog.e(TAG, "Agent 任务超时")
+            XLog.i(TAG, "========================================")
             return false
         }
 
+        XLog.i(TAG, "  - Agent 任务完成，结果: $taskSuccess")
+        XLog.i(TAG, "========================================")
         return taskSuccess
     }
 }
