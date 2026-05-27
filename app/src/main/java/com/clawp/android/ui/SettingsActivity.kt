@@ -11,6 +11,7 @@ import com.clawp.android.agent.AgentConfig
 import com.clawp.android.agent.llm.LlmClientFactory
 import com.clawp.android.channel.ChannelManager
 import com.clawp.android.utils.KVUtils
+import com.clawp.android.utils.XLog
 import dev.langchain4j.data.message.UserMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,6 +23,10 @@ import kotlinx.coroutines.withContext
  */
 class SettingsActivity : AppCompatActivity() {
 
+    companion object {
+        private const val TAG = "SettingsActivity"
+    }
+
     private lateinit var etApiKey: EditText
     private lateinit var etBaseUrl: EditText
     private lateinit var etModelName: EditText
@@ -29,6 +34,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var etFeishuAppSecret: EditText
     private lateinit var btnSave: Button
     private lateinit var btnTestLlm: Button
+    private lateinit var btnTestFeishu: Button
+    private lateinit var tvVersion: android.widget.TextView
 
     private var testJob: Job? = null
 
@@ -43,6 +50,22 @@ class SettingsActivity : AppCompatActivity() {
         etFeishuAppSecret = findViewById(R.id.et_feishu_app_secret)
         btnSave = findViewById(R.id.btn_save)
         btnTestLlm = findViewById(R.id.btn_test_llm)
+        btnTestFeishu = findViewById(R.id.btn_test_feishu)
+        tvVersion = findViewById(R.id.tv_version)
+
+        // 显示版本号
+        try {
+            val versionName = packageManager.getPackageInfo(packageName, 0).versionName
+            val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageManager.getPackageInfo(packageName, 0).longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0).versionCode.toLong()
+            }
+            tvVersion.text = "版本: $versionName (build $versionCode)"
+        } catch (e: Exception) {
+            tvVersion.text = "版本: 未知"
+        }
 
         loadConfig()
 
@@ -52,6 +75,10 @@ class SettingsActivity : AppCompatActivity() {
 
         btnTestLlm.setOnClickListener {
             testLlmConnection()
+        }
+
+        btnTestFeishu.setOnClickListener {
+            testFeishuConnection()
         }
     }
 
@@ -162,5 +189,31 @@ class SettingsActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+    private fun testFeishuConnection() {
+        val feishuAppId = etFeishuAppId.text.toString().trim()
+        val feishuAppSecret = etFeishuAppSecret.text.toString().trim()
+
+        if (feishuAppId.isEmpty() || feishuAppSecret.isEmpty()) {
+            Toast.makeText(this, "请先配置飞书 App ID 和 Secret", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 检查飞书连接状态
+        val isConnected = ChannelManager.isFeiShuConnected()
+        val hasListener = ChannelManager.hasMessageListener()
+
+        val statusMsg = buildString {
+            appendLine("飞书连接诊断:")
+            appendLine("- App ID: ${feishuAppId.take(10)}...")
+            appendLine("- WebSocket 连接: ${if (isConnected) "✅ 已连接" else "❌ 未连接"}")
+            appendLine("- 消息监听器: ${if (hasListener) "✅ 已注册" else "❌ 未注册"}")
+            appendLine()
+            appendLine("请在飞书中向机器人发送消息测试")
+        }
+
+        XLog.i(TAG, statusMsg)
+        Toast.makeText(this, statusMsg, Toast.LENGTH_LONG).show()
     }
 }

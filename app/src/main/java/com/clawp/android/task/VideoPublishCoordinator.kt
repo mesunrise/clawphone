@@ -167,12 +167,15 @@ class VideoPublishCoordinator(
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
                 "飞书消息通知",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "接收飞书消息时的通知"
+                enableVibration(true)
+                enableLights(true)
             }
             val notificationManager = context.getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+            XLog.i(TAG, "通知渠道已创建: $NOTIFICATION_CHANNEL_ID")
         }
     }
 
@@ -180,13 +183,30 @@ class VideoPublishCoordinator(
      * 显示通知
      */
     private fun showNotification(notificationId: Int, title: String, content: String) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(content)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setAutoCancel(true)
-            .build()
-        notificationManager.notify(notificationId, notification)
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            // Android 13+ 需要检查通知权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    XLog.w(TAG, "通知权限未授予，无法显示通知")
+                    return
+                }
+            }
+
+            val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(content)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build()
+
+            notificationManager.notify(notificationId, notification)
+            XLog.i(TAG, "通知已显示: $title - $content")
+        } catch (e: Exception) {
+            XLog.e(TAG, "显示通知失败", e)
+        }
     }
 }

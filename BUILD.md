@@ -127,3 +127,6 @@ jobs:
 
 ### 4. 构建缓存问题
 清理并重新构建：`./gradlew clean assembleDebug`
+
+
+

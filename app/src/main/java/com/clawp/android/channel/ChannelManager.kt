@@ -196,4 +196,20 @@ object ChannelManager {
         val handler = handlers[Channel.FEISHU] as? com.clawp.android.channel.feishu.FeiShuChannelHandler
         return handler?.fileDownloader
     }
+
+    /**
+     * 检查飞书是否已连接（用于诊断）
+     */
+    @JvmStatic
+    fun isFeiShuConnected(): Boolean {
+        return handlers[Channel.FEISHU]?.isConnected() ?: false
+    }
+
+    /**
+     * 检查是否有消息监听器（用于诊断）
+     */
+    @JvmStatic
+    fun hasMessageListener(): Boolean {
+        return messageListener != null || fileMessageListener != null
+    }
 }
