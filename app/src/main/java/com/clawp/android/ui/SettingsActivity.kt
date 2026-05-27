@@ -303,13 +303,20 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
 
-        val testMessage = "测试消息 - ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())}"
+        // 获取最后一次收到消息的 messageID
+        val lastMessageId = ChannelManager.getLastSenderId(Channel.FEISHU)
+        if (lastMessageId.isNullOrEmpty()) {
+            Toast.makeText(this, "请先在飞书中向机器人发送一条消息，然后再测试", Toast.LENGTH_LONG).show()
+            return
+        }
 
-        // 发送消息（使用空 messageID，表示主动发送）
-        ChannelManager.sendMessage(Channel.FEISHU, testMessage, "")
+        val testMessage = "测试回复 - ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())}"
+
+        // 使用最后一次的 messageID 回复消息
+        ChannelManager.sendMessage(Channel.FEISHU, testMessage, lastMessageId)
 
         addMessageToLog("发送消息", testMessage)
-        Toast.makeText(this, "已发送测试消息", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "已发送测试消息（回复到最后一条消息）", Toast.LENGTH_SHORT).show()
     }
 
     private fun checkNotificationPermission() {
