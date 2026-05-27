@@ -35,9 +35,27 @@ class VideoPublishOrchestrator(
      * 执行发布任务
      */
     fun execute(taskRequest: PublishTaskRequest) {
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "VideoPublishOrchestrator.execute() 被调用")
+        XLog.i(TAG, "  - 视频数量: ${taskRequest.videos.size}")
+        XLog.i(TAG, "  - 准备启动协程...")
+        XLog.i(TAG, "========================================")
+
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "execute() 被调用，准备启动协程，videos=${taskRequest.videos.size}")
+
         scope.launch {
-            mutex.withLock {
-                executeInternal(taskRequest)
+            XLog.i(TAG, "协程已启动，准备获取锁...")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "协程已启动，准备获取锁")
+
+            try {
+                mutex.withLock {
+                    XLog.i(TAG, "已获取锁，准备调用 executeInternal()")
+                    com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "已获取锁，准备调用 executeInternal()")
+                    executeInternal(taskRequest)
+                }
+            } catch (e: Exception) {
+                XLog.e(TAG, "execute() 协程异常", e)
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "execute() 协程异常: ${e.message}")
             }
         }
     }
@@ -50,6 +68,8 @@ class VideoPublishOrchestrator(
         XLog.i(TAG, "  - 描述: ${taskRequest.description}")
         XLog.i(TAG, "========================================")
 
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "executeInternal: videos=${taskRequest.videos.size}, topics=${taskRequest.topics}")
+
         progressReporter.reportStart(taskRequest.videos.size)
 
         var successCount = 0
@@ -60,6 +80,7 @@ class VideoPublishOrchestrator(
             val totalVideos = taskRequest.videos.size
 
             XLog.i(TAG, "开始发布视频 $videoNumber/$totalVideos: ${video.fileName}")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "开始发布视频 $videoNumber/$totalVideos: ${video.fileName}")
 
             video.status = PublishStatus.PUBLISHING
             progressReporter.reportProgress(videoNumber, totalVideos, video.fileName)
@@ -72,12 +93,14 @@ class VideoPublishOrchestrator(
                     successCount++
                     progressReporter.reportVideoSuccess(videoNumber, totalVideos, video.fileName)
                     XLog.i(TAG, "视频发布成功: ${video.fileName}")
+                    com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "视频发布成功: ${video.fileName}")
                 } else {
                     video.status = PublishStatus.FAILED
                     video.errorMessage = "发布失败"
                     failedCount++
                     progressReporter.reportVideoFailed(videoNumber, totalVideos, video.fileName, "发布失败")
                     XLog.e(TAG, "视频发布失败: ${video.fileName}")
+                    com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "视频发布失败: ${video.fileName}")
                 }
 
             } catch (e: Exception) {
@@ -86,6 +109,7 @@ class VideoPublishOrchestrator(
                 failedCount++
                 progressReporter.reportVideoFailed(videoNumber, totalVideos, video.fileName, e.message ?: "未知错误")
                 XLog.e(TAG, "视频发布异常: ${video.fileName}", e)
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "视频发布异常: ${video.fileName}, error=${e.message}")
             }
         }
 
@@ -109,6 +133,8 @@ class VideoPublishOrchestrator(
         XLog.i(TAG, "  - topics: $topics")
         XLog.i(TAG, "  - description: $description")
 
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "publishSingleVideo: fileName=${video.fileName}, topics=$topics")
+
         // 构造系统提示词
         val systemPrompt = DouyinPublishPrompts.buildPrompt(
             videoPath = video.localPath,
@@ -117,6 +143,7 @@ class VideoPublishOrchestrator(
         )
 
         XLog.i(TAG, "  - 系统提示词已构建，长度: ${systemPrompt.length}")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "系统提示词已构建，长度: ${systemPrompt.length}")
 
         // 创建 Agent 配置
         val agentConfig = AgentConfig(
@@ -130,67 +157,92 @@ class VideoPublishOrchestrator(
 
         XLog.i(TAG, "  - Agent 配置已创建")
         XLog.i(TAG, "  - 开始执行 Agent 任务...")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "Agent 配置已创建，开始执行 Agent 任务")
 
         // 执行 Agent 任务
         var taskCompleted = false
         var taskSuccess = false
 
-        val agentService = DefaultAgentService()
-        agentService.initialize(agentConfig)
-        agentService.executeTask(
-            userPrompt = "开始发布视频",
-            callback = object : AgentCallback {
-                override fun onLoopStart(round: Int) {
-                    XLog.i(TAG, "Agent 第 $round 轮开始")
-                }
+        try {
+            val agentService = DefaultAgentService()
+            XLog.i(TAG, "  - DefaultAgentService 已创建")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "DefaultAgentService 已创建")
 
-                override fun onContent(round: Int, content: String) {
-                    XLog.d(TAG, "Agent 响应: $content")
-                }
+            agentService.initialize(agentConfig)
+            XLog.i(TAG, "  - AgentService 已初始化")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "AgentService 已初始化")
 
-                override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
-                    XLog.d(TAG, "工具调用: $toolName($parameters)")
-                }
+            agentService.executeTask(
+                userPrompt = "开始发布视频",
+                callback = object : AgentCallback {
+                    override fun onLoopStart(round: Int) {
+                        XLog.i(TAG, "Agent 第 $round 轮开始")
+                        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "Agent 第 $round 轮开始")
+                    }
 
-                override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: com.clawp.android.tool.ToolResult) {
-                    XLog.d(TAG, "工具结果: $toolName -> ${result.toString().take(200)}")
-                }
+                    override fun onContent(round: Int, content: String) {
+                        XLog.d(TAG, "Agent 响应: $content")
+                    }
 
-                override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
-                    XLog.i(TAG, "Agent 完成: rounds=$round, tokens=$totalTokens, answer=$finalAnswer")
-                    taskCompleted = true
-                    taskSuccess = true
-                }
+                    override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
+                        XLog.d(TAG, "工具调用: $toolName($parameters)")
+                        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "工具调用: $toolName")
+                    }
 
-                override fun onError(round: Int, error: Exception, totalTokens: Int) {
-                    XLog.e(TAG, "Agent 错误: ${error.message}")
-                    taskCompleted = true
-                    taskSuccess = false
-                }
+                    override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: com.clawp.android.tool.ToolResult) {
+                        XLog.d(TAG, "工具结果: $toolName -> ${result.toString().take(200)}")
+                    }
 
-                override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
-                    XLog.w(TAG, "系统弹窗拦截")
-                    taskCompleted = true
-                    taskSuccess = false
+                    override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
+                        XLog.i(TAG, "Agent 完成: rounds=$round, tokens=$totalTokens, answer=$finalAnswer")
+                        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "Agent 完成: rounds=$round, tokens=$totalTokens")
+                        taskCompleted = true
+                        taskSuccess = true
+                    }
+
+                    override fun onError(round: Int, error: Exception, totalTokens: Int) {
+                        XLog.e(TAG, "Agent 错误: ${error.message}")
+                        com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "Agent 错误: ${error.message}")
+                        taskCompleted = true
+                        taskSuccess = false
+                    }
+
+                    override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
+                        XLog.w(TAG, "系统弹窗拦截")
+                        com.clawp.android.utils.DebugLogCollector.log(TAG, "WARN", "系统弹窗拦截")
+                        taskCompleted = true
+                        taskSuccess = false
+                    }
                 }
+            )
+
+            XLog.i(TAG, "  - executeTask() 已调用，开始等待完成...")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "executeTask() 已调用，开始等待完成")
+
+            // 等待任务完成（最多等待 5 分钟）
+            var waitTime = 0
+            while (!taskCompleted && waitTime < 300_000) {
+                kotlinx.coroutines.delay(1000)
+                waitTime += 1000
             }
-        )
 
-        // 等待任务完成（最多等待 5 分钟）
-        var waitTime = 0
-        while (!taskCompleted && waitTime < 300_000) {
-            kotlinx.coroutines.delay(1000)
-            waitTime += 1000
-        }
+            if (!taskCompleted) {
+                XLog.e(TAG, "Agent 任务超时")
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "Agent 任务超时")
+                XLog.i(TAG, "========================================")
+                return false
+            }
 
-        if (!taskCompleted) {
-            XLog.e(TAG, "Agent 任务超时")
+            XLog.i(TAG, "  - Agent 任务完成，结果: $taskSuccess")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "Agent 任务完成，结果: $taskSuccess")
+            XLog.i(TAG, "========================================")
+            return taskSuccess
+
+        } catch (e: Exception) {
+            XLog.e(TAG, "publishSingleVideo 异常", e)
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "publishSingleVideo 异常: ${e.message}")
             XLog.i(TAG, "========================================")
             return false
         }
-
-        XLog.i(TAG, "  - Agent 任务完成，结果: $taskSuccess")
-        XLog.i(TAG, "========================================")
-        return taskSuccess
     }
 }
