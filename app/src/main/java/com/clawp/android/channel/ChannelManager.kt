@@ -19,8 +19,8 @@ object ChannelManager {
     private val httpClient = OkHttpClient()
 
     private val handlers = mutableMapOf<Channel, ChannelHandler>()
-    private var messageListener: OnMessageReceivedListener? = null
-    private var fileMessageListener: OnFileMessageReceivedListener? = null
+    private val messageListeners = mutableListOf<OnMessageReceivedListener>()
+    private val fileMessageListeners = mutableListOf<OnFileMessageReceivedListener>()
 
     /**
      * 收到消息的回调接口
@@ -44,12 +44,26 @@ object ChannelManager {
 
     @JvmStatic
     fun setOnMessageReceivedListener(listener: OnMessageReceivedListener?) {
-        this.messageListener = listener
+        if (listener != null && !messageListeners.contains(listener)) {
+            messageListeners.add(listener)
+        }
     }
 
     @JvmStatic
     fun setOnFileMessageReceivedListener(listener: OnFileMessageReceivedListener?) {
-        this.fileMessageListener = listener
+        if (listener != null && !fileMessageListeners.contains(listener)) {
+            fileMessageListeners.add(listener)
+        }
+    }
+
+    @JvmStatic
+    fun removeOnMessageReceivedListener(listener: OnMessageReceivedListener?) {
+        messageListeners.remove(listener)
+    }
+
+    @JvmStatic
+    fun removeOnFileMessageReceivedListener(listener: OnFileMessageReceivedListener?) {
+        fileMessageListeners.remove(listener)
     }
 
     /**
@@ -171,7 +185,13 @@ object ChannelManager {
      */
     @JvmStatic
     fun dispatchMessage(channel: Channel, message: String, messageID: String) {
-        messageListener?.onMessageReceived(channel, message, messageID)
+        messageListeners.forEach { listener ->
+            try {
+                listener.onMessageReceived(channel, message, messageID)
+            } catch (e: Exception) {
+                XLog.e(TAG, "消息监听器异常", e)
+            }
+        }
     }
 
     /**
@@ -185,7 +205,13 @@ object ChannelManager {
         messageID: String,
         chatId: String
     ) {
-        fileMessageListener?.onFileMessageReceived(channel, fileKey, fileName, messageID, chatId)
+        fileMessageListeners.forEach { listener ->
+            try {
+                listener.onFileMessageReceived(channel, fileKey, fileName, messageID, chatId)
+            } catch (e: Exception) {
+                XLog.e(TAG, "文件消息监听器异常", e)
+            }
+        }
     }
 
     /**
@@ -210,6 +236,6 @@ object ChannelManager {
      */
     @JvmStatic
     fun hasMessageListener(): Boolean {
-        return messageListener != null || fileMessageListener != null
+        return messageListeners.isNotEmpty() || fileMessageListeners.isNotEmpty()
     }
 }

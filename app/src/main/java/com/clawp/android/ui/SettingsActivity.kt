@@ -1,14 +1,27 @@
 package com.clawp.android.ui
 
+import android.Manifest
+import android.app.NotificationManager
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.clawp.android.R
 import com.clawp.android.agent.AgentConfig
 import com.clawp.android.agent.llm.LlmClientFactory
+import com.clawp.android.channel.Channel
 import com.clawp.android.channel.ChannelManager
 import com.clawp.android.utils.KVUtils
 import com.clawp.android.utils.XLog
@@ -17,6 +30,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 设置页 - LLM 和飞书配置
@@ -25,6 +41,7 @@ class SettingsActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "SettingsActivity"
+        private const val REQUEST_NOTIFICATION_PERMISSION = 1001
     }
 
     private lateinit var etApiKey: EditText
@@ -35,9 +52,22 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnSave: Button
     private lateinit var btnTestLlm: Button
     private lateinit var btnTestFeishu: Button
-    private lateinit var tvVersion: android.widget.TextView
+    private lateinit var btnSendTestMessage: Button
+    private lateinit var btnCheckNotificationPermission: Button
+    private lateinit var tvVersion: TextView
+    private lateinit var tvMessageLog: TextView
+    private lateinit var svMessageLog: ScrollView
 
     private var testJob: Job? = null
+    private val messageLog = mutableListOf<String>()
+
+    private val messageListener = object : ChannelManager.OnMessageReceivedListener {
+        override fun onMessageReceived(channel: Channel, message: String, messageID: String) {
+            runOnUiThread {
+                addMessageToLog("收到消息", message)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +81,11 @@ class SettingsActivity : AppCompatActivity() {
         btnSave = findViewById(R.id.btn_save)
         btnTestLlm = findViewById(R.id.btn_test_llm)
         btnTestFeishu = findViewById(R.id.btn_test_feishu)
+        btnSendTestMessage = findViewById(R.id.btn_send_test_message)
+        btnCheckNotificationPermission = findViewById(R.id.btn_check_notification_permission)
         tvVersion = findViewById(R.id.tv_version)
+        tvMessageLog = findViewById(R.id.tv_message_log)
+        svMessageLog = findViewById(R.id.sv_message_log)
 
         // 显示版本号
         try {
@@ -68,6 +102,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         loadConfig()
+        setupMessageListener()
 
         btnSave.setOnClickListener {
             saveConfig()
@@ -79,6 +114,14 @@ class SettingsActivity : AppCompatActivity() {
 
         btnTestFeishu.setOnClickListener {
             testFeishuConnection()
+        }
+
+        btnSendTestMessage.setOnClickListener {
+            sendTestMessage()
+        }
+
+        btnCheckNotificationPermission.setOnClickListener {
+            checkNotificationPermission()
         }
     }
 
@@ -215,5 +258,197 @@ class SettingsActivity : AppCompatActivity() {
 
         XLog.i(TAG, statusMsg)
         Toast.makeText(this, statusMsg, Toast.LENGTH_LONG).show()
+    }
+
+    private fun setupMessageListener() {
+        // 注册消息监听器，在设置页显示收到的消息
+        ChannelManager.setOnMessageReceivedListener(messageListener)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // 移除监听器，避免内存泄漏
+        ChannelManager.removeOnMessageReceivedListener(messageListener)
+    }
+
+    private fun addMessageToLog(prefix: String, message: String) {
+        val timestamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val logEntry = "[$timestamp] $prefix: $message"
+        messageLog.add(0, logEntry)
+
+        // 只保留最近 20 条
+        if (messageLog.size > 20) {
+            messageLog.removeAt(messageLog.size - 1)
+        }
+
+        tvMessageLog.text = messageLog.joinToString("\n\n")
+
+        // 滚动到顶部
+        svMessageLog.post {
+            svMessageLog.fullScroll(ScrollView.FOCUS_UP)
+        }
+    }
+
+    private fun sendTestMessage() {
+        val feishuAppId = etFeishuAppId.text.toString().trim()
+        val feishuAppSecret = etFeishuAppSecret.text.toString().trim()
+
+        if (feishuAppId.isEmpty() || feishuAppSecret.isEmpty()) {
+            Toast.makeText(this, "请先配置并保存飞书 App ID 和 Secret", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (!ChannelManager.isFeiShuConnected()) {
+            Toast.makeText(this, "飞书未连接，请先保存配置", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val testMessage = "测试消息 - ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())}"
+
+        // 发送消息（使用空 messageID，表示主动发送）
+        ChannelManager.sendMessage(Channel.FEISHU, testMessage, "")
+
+        addMessageToLog("发送消息", testMessage)
+        Toast.makeText(this, "已发送测试消息", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun checkNotificationPermission() {
+        val statusMsg = buildString {
+            appendLine("通知权限诊断:")
+            appendLine()
+
+            // 1. 检查运行时权限（Android 13+）
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    this@SettingsActivity,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+                appendLine("1. 运行时权限: ${if (hasPermission) "✅ 已授予" else "❌ 未授予"}")
+
+                if (!hasPermission) {
+                    appendLine("   → 需要请求权限")
+                }
+            } else {
+                appendLine("1. 运行时权限: ✅ 不需要（Android < 13）")
+            }
+            appendLine()
+
+            // 2. 检查通知是否启用
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            val notificationsEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                notificationManager.areNotificationsEnabled()
+            } else {
+                true
+            }
+            appendLine("2. 通知总开关: ${if (notificationsEnabled) "✅ 已启用" else "❌ 已禁用"}")
+
+            if (!notificationsEnabled) {
+                appendLine("   → 需要在系统设置中开启")
+            }
+            appendLine()
+
+            // 3. 检查通知渠道状态
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = notificationManager.getNotificationChannel("clawp_message_channel")
+                if (channel != null) {
+                    val importance = channel.importance
+                    val importanceText = when (importance) {
+                        NotificationManager.IMPORTANCE_NONE -> "❌ 已禁用"
+                        NotificationManager.IMPORTANCE_MIN -> "⚠️ 最低"
+                        NotificationManager.IMPORTANCE_LOW -> "⚠️ 低"
+                        NotificationManager.IMPORTANCE_DEFAULT -> "✅ 默认"
+                        NotificationManager.IMPORTANCE_HIGH -> "✅ 高"
+                        else -> "未知"
+                    }
+                    appendLine("3. 通知渠道: $importanceText")
+
+                    if (importance == NotificationManager.IMPORTANCE_NONE) {
+                        appendLine("   → 渠道已被禁用，需要在系统设置中开启")
+                    }
+                } else {
+                    appendLine("3. 通知渠道: ❌ 未创建")
+                }
+            } else {
+                appendLine("3. 通知渠道: ✅ 不需要（Android < 8）")
+            }
+            appendLine()
+
+            // 4. 检查勿扰模式
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val filter = notificationManager.currentInterruptionFilter
+                val dndEnabled = filter != NotificationManager.INTERRUPTION_FILTER_ALL
+                appendLine("4. 勿扰模式: ${if (dndEnabled) "⚠️ 已开启" else "✅ 未开启"}")
+            }
+        }
+
+        XLog.i(TAG, statusMsg)
+
+        // 显示诊断结果
+        AlertDialog.Builder(this)
+            .setTitle("通知权限诊断")
+            .setMessage(statusMsg)
+            .setPositiveButton("请求权限") { _, _ ->
+                requestNotificationPermission()
+            }
+            .setNegativeButton("打开设置") { _, _ ->
+                openNotificationSettings()
+            }
+            .setNeutralButton("关闭", null)
+            .show()
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATION_PERMISSION
+                )
+            } else {
+                Toast.makeText(this, "权限已授予", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(this, "当前系统版本不需要请求权限", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openNotificationSettings() {
+        val intent = Intent().apply {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                    action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                }
+                else -> {
+                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    data = Uri.fromParts("package", packageName, null)
+                }
+            }
+        }
+        startActivity(intent)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "通知权限已授予", Toast.LENGTH_SHORT).show()
+                addMessageToLog("系统", "通知权限已授予")
+            } else {
+                Toast.makeText(this, "通知权限被拒绝", Toast.LENGTH_SHORT).show()
+                addMessageToLog("系统", "通知权限被拒绝")
+            }
+        }
     }
 }

@@ -143,6 +143,51 @@
             android:layout_marginTop="16dp"
             style="?android:attr/borderlessButtonStyle" />
 
+        <!-- 发送测试消息按钮 -->
+        <Button
+            android:id="@+id/btn_send_test_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="发送测试消息"
+            android:layout_marginTop="8dp"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <!-- 检查通知权限按钮 -->
+        <Button
+            android:id="@+id/btn_check_notification_permission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="检查通知权限"
+            android:layout_marginTop="8dp"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <!-- 消息日志 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="消息日志"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="8dp" />
+
+        <ScrollView
+            android:id="@+id/sv_message_log"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:background="#F5F5F5"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/tv_message_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="暂无消息"
+                android:textSize="12sp"
+                android:textColor="#666666"
+                android:fontFamily="monospace" />
+        </ScrollView>
+
         <!-- 保存按钮 -->
         <Button
             android:id="@+id/btn_save"
