@@ -165,4 +165,14 @@ object KVUtils {
 
     /** 是否已配置 LLM（API Key 非空即视为已配置） */
     fun hasLlmConfig(): Boolean = getLlmApiKey().isNotEmpty()
+
+    // ==================== 日志上报服务器 ====================
+    private const val KEY_LOG_SERVER_URL = "KEY_LOG_SERVER_URL"
+    private const val KEY_LOG_UPLOAD_ENABLED = "KEY_LOG_UPLOAD_ENABLED"
+    private const val DEFAULT_LOG_SERVER_URL = ""
+
+    fun getLogServerUrl(): String = getString(KEY_LOG_SERVER_URL, DEFAULT_LOG_SERVER_URL)
+    fun setLogServerUrl(value: String) = putString(KEY_LOG_SERVER_URL, value)
+    fun isLogUploadEnabled(): Boolean = getBoolean(KEY_LOG_UPLOAD_ENABLED, false)
+    fun setLogUploadEnabled(enabled: Boolean) = putBoolean(KEY_LOG_UPLOAD_ENABLED, enabled)
 }

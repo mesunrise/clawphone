@@ -1,12 +1,14 @@
 package com.clawp.android
 
 import android.app.Application
+import android.os.Build
 import com.clawp.android.agent.DefaultAgentService
 import com.clawp.android.channel.ChannelManager
 import com.clawp.android.service.ForegroundService
 import com.clawp.android.task.VideoPublishCoordinator
 import com.clawp.android.tool.ToolRegistry
 import com.clawp.android.utils.KVUtils
+import com.clawp.android.utils.LogUploader
 import com.clawp.android.utils.XLog
 
 /**
@@ -50,6 +52,14 @@ class ClawApplication : Application() {
         Thread({
             if (KVUtils.hasLlmConfig()) {
                 initChannels()
+            }
+
+            // 启动日志自动上报（如果已启用）
+            if (KVUtils.isLogUploadEnabled()) {
+                val serverUrl = KVUtils.getLogServerUrl()
+                val deviceId = "${Build.BRAND}_${Build.MODEL}_${Build.SERIAL}".replace(" ", "_")
+                LogUploader.start(serverUrl, deviceId)
+                XLog.i(TAG, "日志自动上报已启动")
             }
         }, "app-async-init").start()
     }

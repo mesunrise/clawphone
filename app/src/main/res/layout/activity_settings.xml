@@ -161,6 +161,46 @@
             android:layout_marginTop="8dp"
             style="?android:attr/borderlessButtonStyle" />
 
+        <!-- 日志上报配置 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="日志自动上报"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="服务器地址（例如：http://your-server.com/api/logs）"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/et_log_server_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="http://your-server.com/api/logs"
+            android:inputType="textUri"
+            android:maxLines="1" />
+
+        <CheckBox
+            android:id="@+id/cb_log_upload_enabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="启用日志自动上报（每 5 分钟）"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="说明：启用后，应用会每 5 分钟自动将调试日志上传到服务器，文件名格式：clawp_设备ID_时间戳.log"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:layout_marginTop="4dp" />
+
         <!-- 消息日志 -->
         <TextView
             android:layout_width="match_parent"

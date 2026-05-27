@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
@@ -49,6 +50,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var etModelName: EditText
     private lateinit var etFeishuAppId: EditText
     private lateinit var etFeishuAppSecret: EditText
+    private lateinit var etLogServerUrl: EditText
+    private lateinit var cbLogUploadEnabled: CheckBox
     private lateinit var btnSave: Button
     private lateinit var btnTestLlm: Button
     private lateinit var btnTestFeishu: Button
@@ -78,6 +81,8 @@ class SettingsActivity : AppCompatActivity() {
         etModelName = findViewById(R.id.et_model_name)
         etFeishuAppId = findViewById(R.id.et_feishu_app_id)
         etFeishuAppSecret = findViewById(R.id.et_feishu_app_secret)
+        etLogServerUrl = findViewById(R.id.et_log_server_url)
+        cbLogUploadEnabled = findViewById(R.id.cb_log_upload_enabled)
         btnSave = findViewById(R.id.btn_save)
         btnTestLlm = findViewById(R.id.btn_test_llm)
         btnTestFeishu = findViewById(R.id.btn_test_feishu)
@@ -131,6 +136,8 @@ class SettingsActivity : AppCompatActivity() {
         etModelName.setText(KVUtils.getLlmModelName())
         etFeishuAppId.setText(KVUtils.getFeishuAppId())
         etFeishuAppSecret.setText(KVUtils.getFeishuAppSecret())
+        etLogServerUrl.setText(KVUtils.getLogServerUrl())
+        cbLogUploadEnabled.isChecked = KVUtils.isLogUploadEnabled()
     }
 
     private fun saveConfig() {
@@ -139,6 +146,8 @@ class SettingsActivity : AppCompatActivity() {
         val modelName = etModelName.text.toString().trim()
         val feishuAppId = etFeishuAppId.text.toString().trim()
         val feishuAppSecret = etFeishuAppSecret.text.toString().trim()
+        val logServerUrl = etLogServerUrl.text.toString().trim()
+        val logUploadEnabled = cbLogUploadEnabled.isChecked
 
         if (apiKey.isEmpty()) {
             Toast.makeText(this, "API Key 不能为空", Toast.LENGTH_SHORT).show()
@@ -150,6 +159,18 @@ class SettingsActivity : AppCompatActivity() {
         KVUtils.setLlmModelName(modelName)
         KVUtils.setFeishuAppId(feishuAppId)
         KVUtils.setFeishuAppSecret(feishuAppSecret)
+        KVUtils.setLogServerUrl(logServerUrl)
+        KVUtils.setLogUploadEnabled(logUploadEnabled)
+
+        // 启动或停止日志上报
+        if (logUploadEnabled && logServerUrl.isNotEmpty()) {
+            val deviceId = "${Build.BRAND}_${Build.MODEL}_${Build.SERIAL}".replace(" ", "_")
+            com.clawp.android.utils.LogUploader.start(logServerUrl, deviceId)
+            addMessageToLog("系统", "日志自动上报已启动")
+        } else {
+            com.clawp.android.utils.LogUploader.stop()
+            addMessageToLog("系统", "日志自动上报已停止")
+        }
 
         // 重新初始化飞书通道
         if (feishuAppId.isNotEmpty() && feishuAppSecret.isNotEmpty()) {
