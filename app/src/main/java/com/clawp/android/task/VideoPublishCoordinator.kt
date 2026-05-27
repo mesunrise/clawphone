@@ -100,6 +100,34 @@ class VideoPublishCoordinator(
                     return
                 }
 
+                // 调试命令：列出已安装的应用
+                if (message.trim() == "列出应用") {
+                    XLog.i(TAG, "检测到调试命令：列出应用")
+                    scope.launch {
+                        try {
+                            val service = com.clawp.android.service.ClawAccessibilityService.getInstance()
+                            if (service == null) {
+                                ChannelManager.sendMessage(channel, "❌ Accessibility Service 未运行", messageID)
+                                return@launch
+                            }
+
+                            val apps = service.getInstalledApps()
+                            val douyinApps = apps.filter { it.contains("抖音", ignoreCase = true) }
+
+                            if (douyinApps.isEmpty()) {
+                                ChannelManager.sendMessage(channel, "未找到包含'抖音'的应用\n\n所有应用数量: ${apps.size}", messageID)
+                            } else {
+                                val appList = douyinApps.joinToString("\n")
+                                ChannelManager.sendMessage(channel, "找到 ${douyinApps.size} 个抖音相关应用:\n$appList", messageID)
+                            }
+                        } catch (e: Exception) {
+                            XLog.e(TAG, "列出应用异常", e)
+                            ChannelManager.sendMessage(channel, "❌ 列出应用异常: ${e.message}", messageID)
+                        }
+                    }
+                    return
+                }
+
                 // 使用真实的 chatId 进行批次收集
                 batchCollector.addTextMessage(chatId, message, messageID)
             }

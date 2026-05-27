@@ -464,20 +464,71 @@ public class ClawAccessibilityService extends AccessibilityService {
     /**
      * Opens an app by its package name.
      */
-    public boolean openApp(String packageName) {
+    public boolean openApp(String appNameOrPackage) {
         try {
-            Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
+            // 首先尝试作为包名直接打开
+            Intent intent = getPackageManager().getLaunchIntentForPackage(appNameOrPackage);
+
+            // 如果失败，尝试通过应用名称查找包名
             if (intent == null) {
-                XLog.e(TAG, "Cannot resolve launch intent for " + packageName);
+                XLog.i(TAG, "未找到包名 " + appNameOrPackage + "，尝试通过应用名称查找...");
+                String packageName = findPackageByAppName(appNameOrPackage);
+                if (packageName != null) {
+                    XLog.i(TAG, "找到应用: " + appNameOrPackage + " -> " + packageName);
+                    intent = getPackageManager().getLaunchIntentForPackage(packageName);
+                }
+            }
+
+            if (intent == null) {
+                XLog.e(TAG, "Cannot resolve launch intent for " + appNameOrPackage);
                 return false;
             }
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             return true;
         } catch (Exception e) {
-            XLog.e(TAG, "Failed to open app: " + packageName, e);
+            XLog.e(TAG, "Failed to open app: " + appNameOrPackage, e);
             return false;
         }
+    }
+
+    /**
+     * 通过应用名称查找包名
+     */
+    private String findPackageByAppName(String appName) {
+        try {
+            android.content.pm.PackageManager pm = getPackageManager();
+            List<android.content.pm.ApplicationInfo> apps = pm.getInstalledApplications(0);
+
+            for (android.content.pm.ApplicationInfo app : apps) {
+                String label = pm.getApplicationLabel(app).toString();
+                if (label.equals(appName) || label.contains(appName)) {
+                    return app.packageName;
+                }
+            }
+        } catch (Exception e) {
+            XLog.e(TAG, "Failed to find package by app name: " + appName, e);
+        }
+        return null;
+    }
+
+    /**
+     * 获取已安装应用列表（应用名称）
+     */
+    public List<String> getInstalledApps() {
+        List<String> appNames = new ArrayList<>();
+        try {
+            android.content.pm.PackageManager pm = getPackageManager();
+            List<android.content.pm.ApplicationInfo> apps = pm.getInstalledApplications(0);
+
+            for (android.content.pm.ApplicationInfo app : apps) {
+                String label = pm.getApplicationLabel(app).toString();
+                appNames.add(label);
+            }
+        } catch (Exception e) {
+            XLog.e(TAG, "Failed to get installed apps", e);
+        }
+        return appNames;
     }
 
     // ======================== Additional Helper Methods ========================
