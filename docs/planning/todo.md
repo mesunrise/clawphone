@@ -8,42 +8,42 @@
 ## 已完成
 
 ### Phase 0: 项目基础搭建
-- [x] Phase 0.1: 项目初始化（Android 原生 Kotlin）
-- [x] Phase 0.2: 移植核心模块（Agent、LLM、Tool、Channel）
-- [x] Phase 0.3: 最简 UI（HomeActivity + SettingsActivity）
-- [x] Phase 0.4: CI/CD 搭建（GitHub Actions 自动构建 APK）
-- [x] 编译修复：FeiShuFileDownloader、VideoPublishOrchestrator (`4350ee4`)
-- [x] CI 修复：Maven 仓库优先级 (`0551584`)
-- [x] 兼容性：minSdk 降至 26 支持 HarmonyOS (`af007e4`)
-- [x] 版本管理：build_number.txt 自动递增 (`5ea3ac1`)
-- [x] 签名修复：debug 签名配置 (`321171a`)
+- ✅ Phase 0.1: 项目初始化（Android 原生 Kotlin）
+- ✅ Phase 0.2: 移植核心模块（Agent、LLM、Tool、Channel）
+- ✅ Phase 0.3: 最简 UI（HomeActivity + SettingsActivity）
+- ✅ Phase 0.4: CI/CD 搭建（GitHub Actions 自动构建 APK）
+- ✅ 编译修复：FeiShuFileDownloader、VideoPublishOrchestrator (`4350ee4`)
+- ✅ CI 修复：Maven 仓库优先级 (`0551584`)
+- ✅ 兼容性：minSdk 降至 26 支持 HarmonyOS (`af007e4`)
+- ✅ 版本管理：build_number.txt 自动递增 (`5ea3ac1`)
+- ✅ 签名修复：debug 签名配置 (`321171a`)
 
 ### Phase 1: 端到端基础验证 ✅
 目标：在真机上跑通"飞书收视频 → 本地存储 → 能手动确认视频到位"
 
-- [x] **1.1 APK 安装验证** (`bf7976c`)
-  - 在 HarmonyOS 设备上安装 APK 成功
-  - 应用启动无崩溃
-  - 修复 LLM 测试按钮闪退问题（协程生命周期管理）
+- ✅ **1.1 APK 安装验证** (`bf7976c`)
+  - OK 在 HarmonyOS 设备上安装 APK 成功
+  - OK 应用启动无崩溃
+  - OK 修复 LLM 测试按钮闪退问题（协程生命周期管理）
 
-- [x] **1.2 LLM 连接验证** (`bf7976c`)
-  - "测试 LLM 连接"按钮验证 GPUGeek API 可用
-  - DeepSeek-V4-Flash 模型响应正常
+- ✅ **1.2 LLM 连接验证** (`bf7976c`)
+  - OK "测试 LLM 连接"按钮验证 GPUGeek API 可用
+  - OK DeepSeek-V4-Flash 模型响应正常
 
-- [x] **1.3 飞书消息接收** (`b6a022d`, `c3704dd`, `935676d`, `5288558`)
-  - 配置飞书 App ID / Secret
-  - WebSocket 连接成功
-  - 收到文本消息，自动回复正常
-  - 添加版本显示和连接诊断功能
-  - 添加消息日志显示（最近 20 条）
-  - 添加通知权限诊断工具
-  - 修复多监听器支持（VideoPublishCoordinator + SettingsActivity）
-  - 修复测试消息发送（使用 last messageID）
+- ✅ **1.3 飞书消息接收** (`b6a022d`, `c3704dd`, `935676d`, `5288558`)
+  - OK 配置飞书 App ID / Secret
+  - OK WebSocket 连接成功
+  - OK 收到文本消息，自动回复正常
+  - OK 添加版本显示和连接诊断功能
+  - OK 添加消息日志显示（最近 20 条）
+  - OK 添加通知权限诊断工具
+  - OK 修复多监听器支持（VideoPublishCoordinator + SettingsActivity）
+  - OK 修复测试消息发送（使用 last messageID）
 
-- [x] **1.4 飞书视频下载** (用户确认)
-  - 向飞书机器人发送视频文件
-  - 视频成功下载到手机
-  - 系统通知显示正常
+- ✅ **1.4 飞书视频下载** (用户确认)
+  - OK 向飞书机器人发送视频文件
+  - OK 视频成功下载到手机
+  - OK 系统通知显示正常
 
 ---
 
