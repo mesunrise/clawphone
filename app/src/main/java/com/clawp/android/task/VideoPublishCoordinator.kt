@@ -71,6 +71,35 @@ class VideoPublishCoordinator(
                     messageID
                 )
 
+                // 简化测试：直接响应"打开抖音"命令
+                if (message.trim() == "打开抖音") {
+                    XLog.i(TAG, "检测到测试命令：打开抖音")
+                    scope.launch {
+                        try {
+                            val service = com.clawp.android.service.ClawAccessibilityService.getInstance()
+                            if (service == null) {
+                                XLog.e(TAG, "Accessibility Service 未运行")
+                                ChannelManager.sendMessage(channel, "❌ Accessibility Service 未运行，请在设置中启用", messageID)
+                                return@launch
+                            }
+
+                            XLog.i(TAG, "开始打开抖音极速版...")
+                            val result = service.openApp("抖音极速版")
+                            if (result) {
+                                XLog.i(TAG, "✅ 抖音极速版已打开")
+                                ChannelManager.sendMessage(channel, "✅ 抖音极速版已打开", messageID)
+                            } else {
+                                XLog.e(TAG, "❌ 打开抖音极速版失败")
+                                ChannelManager.sendMessage(channel, "❌ 打开抖音极速版失败，请检查应用是否已安装", messageID)
+                            }
+                        } catch (e: Exception) {
+                            XLog.e(TAG, "打开抖音极速版异常", e)
+                            ChannelManager.sendMessage(channel, "❌ 打开抖音极速版异常: ${e.message}", messageID)
+                        }
+                    }
+                    return
+                }
+
                 // 使用真实的 chatId 进行批次收集
                 batchCollector.addTextMessage(chatId, message, messageID)
             }
