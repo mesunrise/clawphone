@@ -1,6 +1,11 @@
 package com.clawp.android.task
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.clawp.android.R
 import com.clawp.android.channel.Channel
 import com.clawp.android.channel.ChannelManager
 import com.clawp.android.channel.feishu.FeiShuFileDownloader
@@ -22,6 +27,9 @@ class VideoPublishCoordinator(
 
     companion object {
         private const val TAG = "VideoPublishCoordinator"
+        private const val NOTIFICATION_CHANNEL_ID = "clawp_message_channel"
+        private const val NOTIFICATION_ID_TEXT = 2001
+        private const val NOTIFICATION_ID_FILE = 2002
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -35,11 +43,33 @@ class VideoPublishCoordinator(
      * 初始化（在 ChannelManager 初始化后调用）
      */
     fun init() {
+        createNotificationChannel()
         ChannelManager.setOnFileMessageReceivedListener(this)
 
         // 同时监听文本消息用于批次收集
         ChannelManager.setOnMessageReceivedListener(object : ChannelManager.OnMessageReceivedListener {
             override fun onMessageReceived(channel: Channel, message: String, messageID: String) {
+                XLog.i(TAG, "========================================")
+                XLog.i(TAG, "收到飞书文本消息!")
+                XLog.i(TAG, "  - Channel: ${channel.displayName}")
+                XLog.i(TAG, "  - MessageID: $messageID")
+                XLog.i(TAG, "  - Content: $message")
+                XLog.i(TAG, "========================================")
+
+                // 显示通知
+                showNotification(
+                    NOTIFICATION_ID_TEXT,
+                    "收到飞书文本消息",
+                    message.take(50)
+                )
+
+                // 回复确认消息（验证阶段）
+                ChannelManager.sendMessage(
+                    channel,
+                    "✅ 收到消息: $message",
+                    messageID
+                )
+
                 // 提取 chatId（从 messageID 或其他方式）
                 // 这里简化处理，使用 messageID 作为 chatId
                 batchCollector.addTextMessage(messageID, message, messageID)
@@ -63,7 +93,21 @@ class VideoPublishCoordinator(
         messageID: String,
         chatId: String
     ) {
-        XLog.i(TAG, "收到文件消息: fileKey=$fileKey, fileName=$fileName, chatId=$chatId")
+        XLog.i(TAG, "========================================")
+        XLog.i(TAG, "收到飞书文件消息!")
+        XLog.i(TAG, "  - Channel: ${channel.displayName}")
+        XLog.i(TAG, "  - FileKey: $fileKey")
+        XLog.i(TAG, "  - FileName: $fileName")
+        XLog.i(TAG, "  - MessageID: $messageID")
+        XLog.i(TAG, "  - ChatID: $chatId")
+        XLog.i(TAG, "========================================")
+
+        // 显示通知
+        showNotification(
+            NOTIFICATION_ID_FILE,
+            "收到飞书文件消息",
+            "文件名: $fileName"
+        )
 
         val downloader = fileDownloader
         if (downloader == null) {
@@ -113,5 +157,36 @@ class VideoPublishCoordinator(
             chatId = batch.chatId
         )
         orchestrator.execute(taskRequest)
+    }
+
+    /**
+     * 创建通知渠道
+     */
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "飞书消息通知",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "接收飞书消息时的通知"
+            }
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    /**
+     * 显示通知
+     */
+    private fun showNotification(notificationId: Int, title: String, content: String) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(notificationId, notification)
     }
 }
