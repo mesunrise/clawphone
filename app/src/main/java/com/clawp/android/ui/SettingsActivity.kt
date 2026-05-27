@@ -62,7 +62,7 @@ class SettingsActivity : AppCompatActivity() {
     private val messageLog = mutableListOf<String>()
 
     private val messageListener = object : ChannelManager.OnMessageReceivedListener {
-        override fun onMessageReceived(channel: Channel, message: String, messageID: String) {
+        override fun onMessageReceived(channel: Channel, message: String, messageID: String, chatId: String) {
             runOnUiThread {
                 addMessageToLog("收到消息", message)
             }

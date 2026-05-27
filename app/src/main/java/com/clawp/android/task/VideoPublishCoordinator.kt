@@ -48,11 +48,12 @@ class VideoPublishCoordinator(
 
         // 同时监听文本消息用于批次收集
         ChannelManager.setOnMessageReceivedListener(object : ChannelManager.OnMessageReceivedListener {
-            override fun onMessageReceived(channel: Channel, message: String, messageID: String) {
+            override fun onMessageReceived(channel: Channel, message: String, messageID: String, chatId: String) {
                 XLog.i(TAG, "========================================")
                 XLog.i(TAG, "收到飞书文本消息!")
                 XLog.i(TAG, "  - Channel: ${channel.displayName}")
                 XLog.i(TAG, "  - MessageID: $messageID")
+                XLog.i(TAG, "  - ChatID: $chatId")
                 XLog.i(TAG, "  - Content: $message")
                 XLog.i(TAG, "========================================")
 
@@ -70,9 +71,8 @@ class VideoPublishCoordinator(
                     messageID
                 )
 
-                // 提取 chatId（从 messageID 或其他方式）
-                // 这里简化处理，使用 messageID 作为 chatId
-                batchCollector.addTextMessage(messageID, message, messageID)
+                // 使用真实的 chatId 进行批次收集
+                batchCollector.addTextMessage(chatId, message, messageID)
             }
         })
 

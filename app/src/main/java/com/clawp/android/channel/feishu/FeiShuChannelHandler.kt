@@ -65,7 +65,7 @@ class FeiShuChannelHandler(
                                     rawContent
                                 }
                                 lastMessageId = messageId
-                                ChannelManager.dispatchMessage(channel, text, messageId)
+                                ChannelManager.dispatchMessage(channel, text, messageId, chatId)
                             }
                             "file", "video", "media" -> {
                                 val rawContent = event.event.message.content
