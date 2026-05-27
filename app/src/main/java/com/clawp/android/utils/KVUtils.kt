@@ -135,9 +135,9 @@ object KVUtils {
     fun setGuideShown(shown: Boolean) = putBoolean(KEY_GUIDE_SHOWN, shown)
 
     // ==================== 飞书配置 ====================
-    fun getFeishuAppId(): String = getString(KEY_FEISHU_APP_ID, "")
+    fun getFeishuAppId(): String = getString(KEY_FEISHU_APP_ID, DEFAULT_FEISHU_APP_ID)
     fun setFeishuAppId(value: String) = putString(KEY_FEISHU_APP_ID, value)
-    fun getFeishuAppSecret(): String = getString(KEY_FEISHU_APP_SECRET, "")
+    fun getFeishuAppSecret(): String = getString(KEY_FEISHU_APP_SECRET, DEFAULT_FEISHU_APP_SECRET)
     fun setFeishuAppSecret(value: String) = putString(KEY_FEISHU_APP_SECRET, value)
 
     // ==================== 配置服务器 ====================
@@ -149,11 +149,18 @@ object KVUtils {
     private const val KEY_LLM_BASE_URL = "KEY_LLM_BASE_URL"
     private const val KEY_LLM_MODEL_NAME = "KEY_LLM_MODEL_NAME"
 
-    fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
+    // 默认配置值（用户需在设置页填入真实密钥）
+    private const val DEFAULT_LLM_API_KEY = ""
+    private const val DEFAULT_LLM_BASE_URL = "https://api.gpugeek.com/v1"
+    private const val DEFAULT_LLM_MODEL_NAME = "Vendor3/DeepSeek-V4-Flash"
+    private const val DEFAULT_FEISHU_APP_ID = ""
+    private const val DEFAULT_FEISHU_APP_SECRET = ""
+
+    fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, DEFAULT_LLM_API_KEY)
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
-    fun getLlmBaseUrl(): String = getString(KEY_LLM_BASE_URL, "")
+    fun getLlmBaseUrl(): String = getString(KEY_LLM_BASE_URL, DEFAULT_LLM_BASE_URL)
     fun setLlmBaseUrl(value: String) = putString(KEY_LLM_BASE_URL, value)
-    fun getLlmModelName(): String = getString(KEY_LLM_MODEL_NAME, "")
+    fun getLlmModelName(): String = getString(KEY_LLM_MODEL_NAME, DEFAULT_LLM_MODEL_NAME)
     fun setLlmModelName(value: String) = putString(KEY_LLM_MODEL_NAME, value)
 
     /** 是否已配置 LLM（API Key 非空即视为已配置） */

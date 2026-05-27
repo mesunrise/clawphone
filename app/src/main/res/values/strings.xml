@@ -26,8 +26,13 @@
     <string name="settings_feishu_app_id">飞书 App ID</string>
     <string name="settings_feishu_app_secret">飞书 App Secret</string>
     <string name="settings_btn_save">保存</string>
+    <string name="settings_btn_test_llm">测试 LLM 连接</string>
     <string name="settings_save_success">保存成功</string>
     <string name="settings_save_failed">保存失败</string>
+    <string name="settings_test_llm_testing">正在测试连接...</string>
+    <string name="settings_test_llm_success">连接成功！模型响应正常</string>
+    <string name="settings_test_llm_failed">连接失败: %s</string>
+    <string name="settings_test_llm_no_config">请先填写 API Key</string>
     <string name="settings_hint_api_key">请输入 Anthropic API Key</string>
     <string name="settings_hint_base_url">默认: https://api.anthropic.com</string>
     <string name="settings_hint_model_name">默认: claude-opus-4-20250514</string>

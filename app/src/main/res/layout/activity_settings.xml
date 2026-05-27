@@ -74,6 +74,15 @@
             android:inputType="text"
             android:maxLines="1" />
 
+        <!-- 测试连接按钮 -->
+        <Button
+            android:id="@+id/btn_test_llm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_btn_test_llm"
+            android:layout_marginTop="16dp"
+            style="?android:attr/borderlessButtonStyle" />
+
         <!-- 飞书配置 -->
         <TextView
             android:layout_width="match_parent"
