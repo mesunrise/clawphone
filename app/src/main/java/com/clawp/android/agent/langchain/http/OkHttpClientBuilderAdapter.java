@@ -25,7 +25,7 @@ public class OkHttpClientBuilderAdapter implements HttpClientBuilder {
     private static final String TAG = "OkHttp";
 
     private Duration connectTimeout = Duration.ofSeconds(60);
-    private Duration readTimeout = Duration.ofSeconds(300);
+    private Duration readTimeout = Duration.ofSeconds(90);  // 降低到 90 秒，避免长时间等待
 
     /**
      * 是否将请求/响应原始数据输出到文件（沙盒缓存目录）

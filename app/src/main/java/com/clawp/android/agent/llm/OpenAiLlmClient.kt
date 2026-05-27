@@ -93,7 +93,12 @@ class OpenAiLlmClient(
             }
         })
 
-        latch.await()
+        // 等待最多 120 秒（2 分钟），避免无限等待
+        val completed = latch.await(120, java.util.concurrent.TimeUnit.SECONDS)
+        if (!completed) {
+            throw java.util.concurrent.TimeoutException("LLM streaming response timeout after 120 seconds")
+        }
+
         errorRef.get()?.let { throw it }
         return resultRef.get()
     }

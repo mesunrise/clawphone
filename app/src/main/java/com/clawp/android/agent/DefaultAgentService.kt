@@ -343,6 +343,7 @@ class DefaultAgentService : AgentService {
                 llmResponse = chatWithRetry(messages, callback, iterations)
             } catch (e: Exception) {
                 XLog.e(TAG, "LLM API call failed after retries", e)
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "LLM API 调用失败: ${e.javaClass.simpleName}: ${e.message}")
                 callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_api_call_failed, e.message)), totalTokens)
                 return
             }
