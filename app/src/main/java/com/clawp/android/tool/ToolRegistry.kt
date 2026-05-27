@@ -57,6 +57,9 @@ object ToolRegistry {
         register(LongPressTool())
         register(SwipeTool())
         register(ScrollToFindTool())
+        register(ClickElementByTextTool())
+        register(WaitForElementTool())
+        register(DismissSystemDialogTool())
     }
 
     fun register(tool: BaseTool) {

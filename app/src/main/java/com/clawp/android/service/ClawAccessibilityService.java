@@ -376,6 +376,69 @@ public class ClawAccessibilityService extends AccessibilityService {
         return bitmapRef.get();
     }
 
+    // ======================== System Dialog Detection ========================
+
+    /**
+     * Checks if there's a system dialog (permission request, update prompt, etc.) on screen.
+     * Returns true if detected, along with dialog information.
+     */
+    public boolean hasSystemDialog() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) {
+            return false;
+        }
+
+        // Check for common system dialog indicators
+        String packageName = root.getPackageName() != null ? root.getPackageName().toString() : "";
+
+        // System UI packages
+        if (packageName.contains("com.android.systemui") ||
+            packageName.contains("com.android.packageinstaller") ||
+            packageName.contains("com.google.android.permissioncontroller")) {
+            return true;
+        }
+
+        // Check for dialog-like windows
+        List<AccessibilityNodeInfo> buttons = new ArrayList<>();
+        buttons.addAll(findNodesByText("允许"));
+        buttons.addAll(findNodesByText("拒绝"));
+        buttons.addAll(findNodesByText("取消"));
+        buttons.addAll(findNodesByText("确定"));
+        buttons.addAll(findNodesByText("稍后"));
+        buttons.addAll(findNodesByText("更新"));
+        buttons.addAll(findNodesByText("跳过"));
+
+        return !buttons.isEmpty();
+    }
+
+    /**
+     * Attempts to dismiss system dialogs by clicking common dismiss buttons.
+     * Returns true if a dismiss action was performed.
+     */
+    public boolean dismissSystemDialog() {
+        if (!hasSystemDialog()) {
+            return false;
+        }
+
+        // Try to find and click dismiss buttons in priority order
+        String[] dismissTexts = {"跳过", "稍后", "取消", "拒绝", "关闭"};
+
+        for (String text : dismissTexts) {
+            List<AccessibilityNodeInfo> nodes = findNodesByText(text);
+            if (!nodes.isEmpty()) {
+                AccessibilityNodeInfo node = nodes.get(0);
+                if (performClick(node)) {
+                    XLog.i(TAG, "Dismissed system dialog by clicking: " + text);
+                    return true;
+                }
+            }
+        }
+
+        // If no dismiss button found, try pressing back
+        XLog.i(TAG, "No dismiss button found, trying back button");
+        return performGlobalBack();
+    }
+
     // ======================== Key Event Injection (TV Remote) ========================
 
     /**

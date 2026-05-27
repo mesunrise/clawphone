@@ -51,45 +51,37 @@
 
 目标：Agent 自动操作抖音极速版完成发布
 
-### 2.1 UI 研究：手动走通抖音发布流程
-- [ ] 用户手动操作抖音极速版发布一条视频
-- [ ] 截图或录屏每个步骤的界面
-- [ ] 记录 UI 元素的 resource-id、text、content-description
-- [ ] 使用 `adb shell uiautomator dump` 导出 UI 树
-- [ ] 整理发布流程步骤文档
+### 2.1 UI 研究：手动走通抖音发布流程 ✅
+- ✅ 用户手动操作抖音极速版发布一条视频
+- ✅ 记录发布流程步骤文档 (`docs/requirements/douyin_publish_flow.md`)
+- ✅ 整理 8 步发布流程：打开应用 → 点击"+" → 选择"相册" → 选择视频 → 点击"下一步" → 添加话题 → 添加自主声明 → 点击"发布"
 
-**预期步骤**：
-1. 打开抖音极速版
-2. 点击底部"+"按钮
-3. 选择"相册"
-4. 选择视频文件
-5. 点击"下一步"
-6. 添加话题（输入 # + 关键词）
-7. 点击"发布"按钮
-8. 等待发布完成
+### 2.2 实现 ClawAccessibilityService 核心方法 ✅
+- ✅ `hasSystemDialog()` — 检测系统弹窗（权限请求、更新提示等）
+- ✅ `dismissSystemDialog()` — 自动关闭系统弹窗
+- ✅ `getScreenInfo()` — 获取当前屏幕 UI 树的结构化摘要
+- ✅ `takeScreenshot()` — 截屏供 LLM 参考
 
-### 2.2 实现 ClawAccessibilityService 核心方法
-- [ ] `hasSystemDialog()` — 检测并处理系统弹窗（权限请求、更新提示等）
-- [ ] `getScreenInfo()` — 获取当前屏幕 UI 树的结构化摘要
-- [ ] `takeScreenshot()` — 截屏供 LLM 参考
-- [ ] 添加日志输出，方便调试
+### 2.3 实现抖音发布 Tool 集合 ✅
+- ✅ `ClickElementByTextTool` — 通过文本查找并点击元素
+- ✅ `WaitForElementTool` — 等待元素出现
+- ✅ `DismissSystemDialogTool` — 检测并关闭系统弹窗
+- ✅ 已注册到 ToolRegistry.registerMobileTools()
+- ✅ 其他工具已存在：`open_app`, `input_text`, `swipe`, `back`, `home` 等
 
-### 2.3 实现抖音发布 Tool 集合
-- [ ] `open_app("抖音极速版")` — 打开应用
-- [ ] `tap_element(selector)` — 点击指定元素
-- [ ] `input_text(text)` — 输入文本（话题关键词等）
-- [ ] `swipe(direction)` — 滑动（选择视频时翻页等）
-- [ ] `wait_for_element(selector, timeout)` — 等待元素出现
-- [ ] `back()` — 返回上一页
-- [ ] `home()` — 返回主屏幕
+### 2.4 抖音发布 Agent Prompt 调优 ✅
+- ✅ 创建 DouyinPublishPrompts.kt 系统提示词
+- ✅ 明确 8 步发布流程指引
+- ✅ 添加异常处理策略（系统弹窗、元素未找到、登录态失效等）
+- ✅ 添加工具使用规范（文本匹配优先、等待策略、截图时机等）
+- ✅ 实现 buildPrompt() 方法动态构建提示词
 
-### 2.4 抖音发布 Agent Prompt 调优
-- [ ] 完善 DouyinPublishPrompts.kt 中的系统提示词
-- [ ] 明确步骤：打开抖音 → 点击"+" → 选视频 → 加话题 → 发布
-- [ ] 添加常见异常处理指引（广告弹窗、登录态失效等）
-- [ ] 添加 UI 元素识别策略（优先 resource-id，其次 text）
+### 2.5 端到端集成 ✅
+- ✅ VideoPublishOrchestrator 已集成 DouyinPublishPrompts
+- ✅ VideoPublishCoordinator 已连接飞书消息监听
+- ✅ 编译通过，无错误
 
-### 2.5 单视频端到端测试
+### 2.6 单视频端到端测试（待测试）
 - [ ] 飞书发送 1 个视频 + "发到抖音 #测试"
 - [ ] 观察 Agent 自动操作全流程
 - [ ] 验证抖音上作品发布成功、话题正确
