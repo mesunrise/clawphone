@@ -249,7 +249,8 @@ class VideoPublishCoordinator(
         com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "创建 VideoPublishOrchestrator 并执行任务")
         val orchestrator = VideoPublishOrchestrator(
             channel = Channel.FEISHU,
-            chatId = batch.chatId
+            chatId = batch.chatId,
+            context = context
         )
         orchestrator.execute(taskRequest)
         XLog.i(TAG, "========================================")

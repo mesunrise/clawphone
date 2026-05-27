@@ -1,5 +1,7 @@
 package com.clawp.android.task
 
+import android.os.PowerManager
+import android.content.Context
 import com.clawp.android.agent.AgentCallback
 import com.clawp.android.agent.AgentConfig
 import com.clawp.android.agent.DefaultAgentService
@@ -20,7 +22,8 @@ import kotlinx.coroutines.sync.withLock
  */
 class VideoPublishOrchestrator(
     private val channel: Channel,
-    private val chatId: String
+    private val chatId: String,
+    private val context: Context
 ) {
     companion object {
         private const val TAG = "VideoPublishOrchestrator"
@@ -30,6 +33,7 @@ class VideoPublishOrchestrator(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutex = Mutex()
     private val progressReporter = PublishProgressReporter(channel, chatId)
+    private var wakeLock: PowerManager.WakeLock? = null
 
     /**
      * 执行发布任务
@@ -51,12 +55,59 @@ class VideoPublishOrchestrator(
                 mutex.withLock {
                     XLog.i(TAG, "已获取锁，准备调用 executeInternal()")
                     com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "已获取锁，准备调用 executeInternal()")
-                    executeInternal(taskRequest)
+
+                    // 获取 WakeLock 保持屏幕常亮
+                    acquireWakeLock()
+
+                    try {
+                        executeInternal(taskRequest)
+                    } finally {
+                        // 释放 WakeLock
+                        releaseWakeLock()
+                    }
                 }
             } catch (e: Exception) {
                 XLog.e(TAG, "execute() 协程异常", e)
                 com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "execute() 协程异常: ${e.message}")
+                releaseWakeLock()
             }
+        }
+    }
+
+    /**
+     * 获取 WakeLock 保持屏幕常亮
+     */
+    private fun acquireWakeLock() {
+        try {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "Clawp:VideoPublish"
+            )
+            wakeLock?.acquire(10 * 60 * 1000L) // 最多保持 10 分钟
+            XLog.i(TAG, "WakeLock 已获取，防止 CPU 休眠")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "WakeLock 已获取，防止 CPU 休眠")
+        } catch (e: Exception) {
+            XLog.e(TAG, "获取 WakeLock 失败", e)
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "获取 WakeLock 失败: ${e.message}")
+        }
+    }
+
+    /**
+     * 释放 WakeLock
+     */
+    private fun releaseWakeLock() {
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    XLog.i(TAG, "WakeLock 已释放")
+                    com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "WakeLock 已释放")
+                }
+            }
+            wakeLock = null
+        } catch (e: Exception) {
+            XLog.e(TAG, "释放 WakeLock 失败", e)
         }
     }
 
