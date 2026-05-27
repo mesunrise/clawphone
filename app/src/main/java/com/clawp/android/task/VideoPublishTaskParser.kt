@@ -33,8 +33,11 @@ class VideoPublishTaskParser {
         XLog.i(TAG, "  - videos: ${batch.videos.size}")
         XLog.i(TAG, "  - textMessages: ${batch.textMessages.size}")
 
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "parse: chatId=${batch.chatId}, videos=${batch.videos.size}, texts=${batch.textMessages.size}")
+
         if (batch.videos.isEmpty()) {
             XLog.w(TAG, "  - 批次无视频，无法生成任务")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "WARN", "批次无视频，无法生成任务")
             XLog.i(TAG, "========================================")
             return null
         }
@@ -42,13 +45,16 @@ class VideoPublishTaskParser {
         // 合并所有文本消息
         val fullText = batch.textMessages.joinToString(" ")
         XLog.i(TAG, "  - 合并后的文本: $fullText")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "合并后的文本: $fullText")
 
         // 检查是否包含发布意图
         val hasIntent = containsPublishIntent(fullText)
         XLog.i(TAG, "  - 是否包含发布意图: $hasIntent")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "是否包含发布意图: $hasIntent")
 
         if (!hasIntent) {
             XLog.w(TAG, "  - 未检测到发布意图，返回 null")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "WARN", "未检测到发布意图，返回 null")
             XLog.i(TAG, "========================================")
             return null
         }
@@ -56,10 +62,12 @@ class VideoPublishTaskParser {
         // 提取话题
         val topics = extractTopics(fullText)
         XLog.i(TAG, "  - 提取到的话题: $topics")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "提取到的话题: $topics")
 
         // 提取描述（去掉话题后的剩余文本）
         val description = extractDescription(fullText, topics)
         XLog.i(TAG, "  - 提取到的描述: $description")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "提取到的描述: $description")
 
         val request = PublishTaskRequest(
             videos = batch.videos,
@@ -70,6 +78,7 @@ class VideoPublishTaskParser {
         )
 
         XLog.i(TAG, "  - 任务解析成功，返回 PublishTaskRequest")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "任务解析成功，返回 PublishTaskRequest")
         XLog.i(TAG, "========================================")
         return request
     }

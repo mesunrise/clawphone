@@ -128,6 +128,32 @@ class VideoPublishCoordinator(
                     return
                 }
 
+                // 调试命令：查看日志
+                if (message.trim().startsWith("查看日志")) {
+                    XLog.i(TAG, "检测到调试命令：查看日志")
+                    scope.launch {
+                        try {
+                            val parts = message.trim().split(" ")
+                            val filter = if (parts.size > 1) parts[1] else null
+                            val count = if (parts.size > 2) parts[2].toIntOrNull() ?: 50 else 50
+
+                            com.clawp.android.utils.DebugLogCollector.sendToFeishu(messageID, filter, count)
+                        } catch (e: Exception) {
+                            XLog.e(TAG, "查看日志异常", e)
+                            ChannelManager.sendMessage(channel, "❌ 查看日志异常: ${e.message}", messageID)
+                        }
+                    }
+                    return
+                }
+
+                // 调试命令：清空日志
+                if (message.trim() == "清空日志") {
+                    XLog.i(TAG, "检测到调试命令：清空日志")
+                    com.clawp.android.utils.DebugLogCollector.clear()
+                    ChannelManager.sendMessage(channel, "✅ 日志已清空", messageID)
+                    return
+                }
+
                 // 使用真实的 chatId 进行批次收集
                 batchCollector.addTextMessage(chatId, message, messageID)
             }
@@ -200,10 +226,13 @@ class VideoPublishCoordinator(
         XLog.i(TAG, "  - videos: ${batch.videos.size}")
         XLog.i(TAG, "  - texts: ${batch.textMessages.size}")
 
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "handleBatchComplete: chatId=${batch.chatId}, videos=${batch.videos.size}, texts=${batch.textMessages.size}")
+
         // 解析任务
         val taskRequest = taskParser.parse(batch)
         if (taskRequest == null) {
             XLog.w(TAG, "  - 任务解析失败或无发布意图，忽略批次")
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "WARN", "任务解析失败或无发布意图，忽略批次")
             XLog.i(TAG, "========================================")
             return
         }
@@ -213,8 +242,11 @@ class VideoPublishCoordinator(
         XLog.i(TAG, "    - 话题: ${taskRequest.topics}")
         XLog.i(TAG, "    - 描述: ${taskRequest.description}")
 
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "任务解析成功: videos=${taskRequest.videos.size}, topics=${taskRequest.topics}, desc=${taskRequest.description}")
+
         // 创建编排器并执行任务
         XLog.i(TAG, "  - 创建 VideoPublishOrchestrator 并执行任务")
+        com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "创建 VideoPublishOrchestrator 并执行任务")
         val orchestrator = VideoPublishOrchestrator(
             channel = Channel.FEISHU,
             chatId = batch.chatId
