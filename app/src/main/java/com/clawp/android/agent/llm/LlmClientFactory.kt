@@ -12,6 +12,6 @@ object LlmClientFactory {
                 setFileLoggingEnabled(true, DefaultAgentService.FILE_LOGGING_CACHE_DIR)
             }
         }
-        return AnthropicLlmClient(config, httpClientBuilder)
+        return OpenAiLlmClient(config, httpClientBuilder)
     }
 }
