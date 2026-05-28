@@ -289,72 +289,81 @@ class SettingsActivity : AppCompatActivity() {
         btnTestAgent.isEnabled = false
         addMessageToLog("Agent 测试", "开始测试 Agent（含工具调用）...")
 
-        val agentService = DefaultAgentService()
-        val config = AgentConfig(
-            apiKey = apiKey,
-            baseUrl = baseUrl.ifEmpty { "https://api.gpugeek.com/v1" },
-            modelName = modelName.ifEmpty { "Vendor3/DeepSeek-V4-Flash" },
-            temperature = 0.7,
-            provider = com.clawp.android.agent.LlmProvider.ANTHROPIC,
-            streaming = true,
-            maxIterations = 5
-        )
+        try {
+            val agentService = DefaultAgentService()
+            val config = AgentConfig(
+                apiKey = apiKey,
+                baseUrl = baseUrl.ifEmpty { "https://api.gpugeek.com/v1" },
+                modelName = modelName.ifEmpty { "Vendor3/DeepSeek-V4-Flash" },
+                temperature = 0.7,
+                provider = com.clawp.android.agent.LlmProvider.ANTHROPIC,
+                streaming = false,
+                maxIterations = 5
+            )
 
-        agentService.initialize(config)
+            addMessageToLog("Agent 测试", "初始化 Agent: model=${config.modelName}, baseUrl=${config.baseUrl}, streaming=${config.streaming}")
 
-        val startTime = System.currentTimeMillis()
-        agentService.executeTask("请获取当前屏幕信息（调用 get_screen_info），然后告诉我当前屏幕上显示了什么内容。调用 finish 报告结果。", object : AgentCallback {
-            override fun onLoopStart(round: Int) {
-                val elapsed = System.currentTimeMillis() - startTime
-                runOnUiThread {
-                    addMessageToLog("Agent 测试", "第 ${round} 轮开始 (${elapsed}ms)")
+            agentService.initialize(config)
+            addMessageToLog("Agent 测试", "Agent 初始化成功，开始执行任务...")
+
+            val startTime = System.currentTimeMillis()
+            agentService.executeTask("请获取当前屏幕信息（调用 get_screen_info），然后告诉我当前屏幕上显示了什么内容。调用 finish 报告结果。", object : AgentCallback {
+                override fun onLoopStart(round: Int) {
+                    val elapsed = System.currentTimeMillis() - startTime
+                    runOnUiThread {
+                        addMessageToLog("Agent", "第 ${round} 轮开始 (${elapsed}ms)")
+                    }
                 }
-            }
 
-            override fun onContent(round: Int, content: String) {
-                runOnUiThread {
-                    addMessageToLog("Agent 思考", content.take(200))
+                override fun onContent(round: Int, content: String) {
+                    runOnUiThread {
+                        addMessageToLog("Agent 思考", content.take(200))
+                    }
                 }
-            }
 
-            override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
-                runOnUiThread {
-                    addMessageToLog("Agent 工具", "调用: $toolName($parameters)")
+                override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
+                    runOnUiThread {
+                        addMessageToLog("Agent 工具", "调用: $toolName")
+                    }
                 }
-            }
 
-            override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: ToolResult) {
-                val resultPreview = if (result.isSuccess) "✅ 成功" else "❌ 失败: ${result.error}"
-                runOnUiThread {
-                    addMessageToLog("Agent 工具", "结果: $toolName → $resultPreview")
+                override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: ToolResult) {
+                    val resultPreview = if (result.isSuccess) "✅ 成功" else "❌ 失败: ${result.error}"
+                    runOnUiThread {
+                        addMessageToLog("Agent 工具", "$toolName → $resultPreview")
+                    }
                 }
-            }
 
-            override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
-                val elapsed = System.currentTimeMillis() - startTime
-                runOnUiThread {
-                    addMessageToLog("Agent 测试", "✅ 完成! (${elapsed}ms, ${round}轮, ${totalTokens}tokens)")
-                    addMessageToLog("Agent 结果", finalAnswer.take(300))
-                    btnTestAgent.isEnabled = true
+                override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
+                    val elapsed = System.currentTimeMillis() - startTime
+                    runOnUiThread {
+                        addMessageToLog("Agent 测试", "✅ 完成! (${elapsed}ms, ${round}轮, ${totalTokens}tokens)")
+                        addMessageToLog("Agent 结果", finalAnswer.take(300))
+                        btnTestAgent.isEnabled = true
+                    }
+                    agentService.shutdown()
                 }
-                agentService.shutdown()
-            }
 
-            override fun onError(round: Int, error: Exception, totalTokens: Int) {
-                val elapsed = System.currentTimeMillis() - startTime
-                runOnUiThread {
-                    addMessageToLog("Agent 测试", "❌ 失败 (${elapsed}ms, ${round}轮): ${error.message}")
-                    btnTestAgent.isEnabled = true
+                override fun onError(round: Int, error: Exception, totalTokens: Int) {
+                    val elapsed = System.currentTimeMillis() - startTime
+                    runOnUiThread {
+                        addMessageToLog("Agent 测试", "❌ 失败 (${elapsed}ms, ${round}轮): ${error.javaClass.simpleName}: ${error.message}")
+                        btnTestAgent.isEnabled = true
+                    }
+                    agentService.shutdown()
                 }
-                agentService.shutdown()
-            }
 
-            override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
-                runOnUiThread {
-                    addMessageToLog("Agent 测试", "⚠️ 系统弹窗拦截")
+                override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
+                    runOnUiThread {
+                        addMessageToLog("Agent 测试", "⚠️ 系统弹窗拦截")
+                    }
                 }
-            }
-        })
+            })
+        } catch (e: Exception) {
+            addMessageToLog("Agent 测试", "❌ 初始化崩溃: ${e.javaClass.simpleName}: ${e.message}")
+            XLog.e(TAG, "Agent test crash", e)
+            btnTestAgent.isEnabled = true
+        }
     }
 
     private fun testFeishuConnection() {
