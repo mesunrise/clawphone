@@ -21,9 +21,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.clawp.android.R
 import com.clawp.android.agent.AgentConfig
+import com.clawp.android.agent.AgentCallback
+import com.clawp.android.agent.DefaultAgentService
 import com.clawp.android.agent.llm.LlmClientFactory
 import com.clawp.android.channel.Channel
 import com.clawp.android.channel.ChannelManager
+import com.clawp.android.tool.ToolResult
 import com.clawp.android.utils.KVUtils
 import com.clawp.android.utils.XLog
 import dev.langchain4j.data.message.UserMessage
@@ -54,6 +57,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var cbLogUploadEnabled: CheckBox
     private lateinit var btnSave: Button
     private lateinit var btnTestLlm: Button
+    private lateinit var btnTestAgent: Button
     private lateinit var btnTestFeishu: Button
     private lateinit var btnSendTestMessage: Button
     private lateinit var btnCheckNotificationPermission: Button
@@ -85,6 +89,7 @@ class SettingsActivity : AppCompatActivity() {
         cbLogUploadEnabled = findViewById(R.id.cb_log_upload_enabled)
         btnSave = findViewById(R.id.btn_save)
         btnTestLlm = findViewById(R.id.btn_test_llm)
+        btnTestAgent = findViewById(R.id.btn_test_agent)
         btnTestFeishu = findViewById(R.id.btn_test_feishu)
         btnSendTestMessage = findViewById(R.id.btn_send_test_message)
         btnCheckNotificationPermission = findViewById(R.id.btn_check_notification_permission)
@@ -115,6 +120,10 @@ class SettingsActivity : AppCompatActivity() {
 
         btnTestLlm.setOnClickListener {
             testLlmConnection()
+        }
+
+        btnTestAgent.setOnClickListener {
+            testAgent()
         }
 
         btnTestFeishu.setOnClickListener {
@@ -253,6 +262,99 @@ class SettingsActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+    private fun testAgent() {
+        if (testJob?.isActive == true) {
+            return
+        }
+
+        val apiKey = etApiKey.text.toString().trim()
+        val baseUrl = etBaseUrl.text.toString().trim()
+        val modelName = etModelName.text.toString().trim()
+
+        if (apiKey.isEmpty()) {
+            Toast.makeText(this, "请先配置 API Key", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 检查无障碍服务
+        val accessibilityEnabled = com.clawp.android.service.ClawAccessibilityService.getInstance() != null
+        if (!accessibilityEnabled) {
+            addMessageToLog("Agent 测试", "❌ 无障碍服务未启用，请先开启")
+            Toast.makeText(this, "请先开启无障碍服务", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        btnTestAgent.isEnabled = false
+        addMessageToLog("Agent 测试", "开始测试 Agent（含工具调用）...")
+
+        val agentService = DefaultAgentService()
+        val config = AgentConfig(
+            apiKey = apiKey,
+            baseUrl = baseUrl.ifEmpty { "https://api.gpugeek.com/v1" },
+            modelName = modelName.ifEmpty { "Vendor3/DeepSeek-V4-Flash" },
+            temperature = 0.7,
+            provider = com.clawp.android.agent.LlmProvider.ANTHROPIC,
+            streaming = true,
+            maxIterations = 5
+        )
+
+        agentService.initialize(config)
+
+        val startTime = System.currentTimeMillis()
+        agentService.executeTask("请获取当前屏幕信息（调用 get_screen_info），然后告诉我当前屏幕上显示了什么内容。调用 finish 报告结果。", object : AgentCallback {
+            override fun onLoopStart(round: Int) {
+                val elapsed = System.currentTimeMillis() - startTime
+                runOnUiThread {
+                    addMessageToLog("Agent 测试", "第 ${round} 轮开始 (${elapsed}ms)")
+                }
+            }
+
+            override fun onContent(round: Int, content: String) {
+                runOnUiThread {
+                    addMessageToLog("Agent 思考", content.take(200))
+                }
+            }
+
+            override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
+                runOnUiThread {
+                    addMessageToLog("Agent 工具", "调用: $toolName($parameters)")
+                }
+            }
+
+            override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: ToolResult) {
+                val resultPreview = if (result.isSuccess) "✅ 成功" else "❌ 失败: ${result.error}"
+                runOnUiThread {
+                    addMessageToLog("Agent 工具", "结果: $toolName → $resultPreview")
+                }
+            }
+
+            override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
+                val elapsed = System.currentTimeMillis() - startTime
+                runOnUiThread {
+                    addMessageToLog("Agent 测试", "✅ 完成! (${elapsed}ms, ${round}轮, ${totalTokens}tokens)")
+                    addMessageToLog("Agent 结果", finalAnswer.take(300))
+                    btnTestAgent.isEnabled = true
+                }
+                agentService.shutdown()
+            }
+
+            override fun onError(round: Int, error: Exception, totalTokens: Int) {
+                val elapsed = System.currentTimeMillis() - startTime
+                runOnUiThread {
+                    addMessageToLog("Agent 测试", "❌ 失败 (${elapsed}ms, ${round}轮): ${error.message}")
+                    btnTestAgent.isEnabled = true
+                }
+                agentService.shutdown()
+            }
+
+            override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
+                runOnUiThread {
+                    addMessageToLog("Agent 测试", "⚠️ 系统弹窗拦截")
+                }
+            }
+        })
     }
 
     private fun testFeishuConnection() {

@@ -94,6 +94,15 @@
             android:layout_marginTop="16dp"
             style="?android:attr/borderlessButtonStyle" />
 
+        <!-- 测试 Agent 按钮 -->
+        <Button
+            android:id="@+id/btn_test_agent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="测试 Agent（含工具调用）"
+            android:layout_marginTop="4dp"
+            style="?android:attr/borderlessButtonStyle" />
+
         <!-- 飞书配置 -->
         <TextView
             android:layout_width="match_parent"
