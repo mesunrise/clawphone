@@ -88,7 +88,10 @@ class AnthropicLlmClient(
             }
         })
 
-        latch.await()
+        val completed = latch.await(70, java.util.concurrent.TimeUnit.SECONDS)
+        if (!completed) {
+            throw java.util.concurrent.TimeoutException("LLM streaming response timeout after 70 seconds")
+        }
         errorRef.get()?.let { throw it }
         return resultRef.get()
     }

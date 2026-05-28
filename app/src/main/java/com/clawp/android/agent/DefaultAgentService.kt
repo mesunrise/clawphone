@@ -145,6 +145,7 @@ class DefaultAgentService : AgentService {
         for (attempt in 0 until MAX_API_RETRIES) {
             if (cancelled.get()) throw RuntimeException(ClawApplication.instance.getString(R.string.agent_task_cancelled))
             try {
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "DEBUG", "LLM API 调用 attempt=${attempt + 1}/$MAX_API_RETRIES, streaming=${config.streaming}")
                 return if (config.streaming) {
                     val textBuilder = StringBuilder()
                     llmClient.chatStreaming(messages, toolSpecs, object : StreamingListener {
@@ -332,21 +333,28 @@ class DefaultAgentService : AgentService {
 
         while (iterations < maxIterations && !cancelled.get()) {
             iterations++
+            val roundStartMs = System.currentTimeMillis()
             callback.onLoopStart(iterations)
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "=== 第 ${iterations} 轮开始 ===")
 
             // 发送前分级压缩历史消息，节省 token
             compressHistoryForSend(messages)
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "DEBUG", "消息数: ${messages.size}, 准备调用 LLM API")
 
             // LLM 调用（带重试）
             val llmResponse: LlmResponse
+            val llmStartMs = System.currentTimeMillis()
             try {
                 llmResponse = chatWithRetry(messages, callback, iterations)
             } catch (e: Exception) {
-                XLog.e(TAG, "LLM API call failed after retries", e)
-                com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "LLM API 调用失败: ${e.javaClass.simpleName}: ${e.message}")
+                val llmElapsed = System.currentTimeMillis() - llmStartMs
+                XLog.e(TAG, "LLM API call failed after retries (${llmElapsed}ms)", e)
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "ERROR", "LLM API 调用失败 (${llmElapsed}ms): ${e.javaClass.simpleName}: ${e.message}")
                 callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_api_call_failed, e.message)), totalTokens)
                 return
             }
+            val llmElapsed = System.currentTimeMillis() - llmStartMs
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "LLM API 返回 (${llmElapsed}ms), toolCalls=${llmResponse.toolExecutionRequests.size}")
 
             // 累加 token 用量
             llmResponse.tokenUsage?.totalTokenCount()?.let { totalTokens += it }
@@ -384,27 +392,18 @@ class DefaultAgentService : AgentService {
                 val toolName = toolRequest.name()
                 val toolArgs = toolRequest.arguments()
                 callback.onToolCall(iterations, toolRequest.id(), toolName, toolArgs)
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "工具调用: $toolName($toolArgs)")
 
-                // TODO: 检测系统弹窗拦截（finish 工具被调用时，检查是否有系统弹窗）
-                // 需要在 ClawAccessibilityService 中实现 hasSystemDialog() 方法
-                /*
-                if (toolName == "finish") {
-                    val service = ClawAccessibilityService.getInstance()
-                    if (service != null && service.hasSystemDialog()) {
-                        XLog.w(TAG, "System dialog detected when finish called")
-                        callback.onSystemDialogBlocked(iterations, totalTokens)
-                        return
-                    }
-                }
-                */
-
+                val toolStartMs = System.currentTimeMillis()
                 val result = LangChain4jToolBridge.executeToolRequest(toolRequest)
+                val toolElapsed = System.currentTimeMillis() - toolStartMs
                 val displayName = ToolRegistry.getInstance().getTool(toolName)?.getDisplayName() ?: toolName
-                callback.onToolResult(iterations, toolRequest.id(), displayName, toolArgs, GSON.fromJson(result, ToolResult::class.java))
+                val toolResult = GSON.fromJson(result, ToolResult::class.java)
+                com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "工具结果: $toolName (${toolElapsed}ms) success=${toolResult.isSuccess}")
+                callback.onToolResult(iterations, toolRequest.id(), displayName, toolArgs, toolResult)
 
                 // 死循环检测：记录本轮指纹
                 if (toolName == "get_screen_info") {
-                    val toolResult = GSON.fromJson(result, ToolResult::class.java)
                     if (toolResult.isSuccess) {
                         val screenData = toolResult.data?.toString() ?: ""
                         lastScreenHash = screenData.hashCode()
@@ -434,7 +433,9 @@ class DefaultAgentService : AgentService {
                 )
                 loopHistory.clear()
             }
-            XLog.d(TAG, "轮数:$iterations all=$totalTokens 本轮=${llmResponse.tokenUsage?.totalTokenCount()}")
+            val roundElapsed = System.currentTimeMillis() - roundStartMs
+            com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "=== 第 ${iterations} 轮结束 (${roundElapsed}ms), 累计token=$totalTokens ===")
+            XLog.d(TAG, "轮数:$iterations all=$totalTokens 本轮=${llmResponse.tokenUsage?.totalTokenCount()} 耗时=${roundElapsed}ms")
         }
 
         if (cancelled.get()) {
