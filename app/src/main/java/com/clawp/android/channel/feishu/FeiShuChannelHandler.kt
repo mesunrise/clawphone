@@ -35,6 +35,14 @@ class FeiShuChannelHandler(
         private set
 
     @Volatile
+    private var wsConnected: Boolean = false
+
+    /** 最近一次连接失败的错误信息（用于诊断），null 表示无错误 */
+    @Volatile
+    var lastError: String? = null
+        private set
+
+    @Volatile
     private var lastMessageId: String? = null
 
     private val eventHandler: EventDispatcher by lazy {
@@ -91,38 +99,54 @@ class FeiShuChannelHandler(
             .build()
     }
 
-    override fun isConnected(): Boolean = wsClient != null
+    override fun isConnected(): Boolean = wsConnected
 
     override fun init() {
         if (appId.isEmpty() || appSecret.isEmpty()) {
             XLog.w(TAG, "飞书 AppId/AppSecret 未配置，飞书通道将不可用")
+            lastError = "AppId 或 AppSecret 未配置"
+            wsConnected = false
             return
         }
 
-        apiClient = com.lark.oapi.Client.newBuilder(appId, appSecret).build()
+        try {
+            apiClient = com.lark.oapi.Client.newBuilder(appId, appSecret).build()
+            XLog.i(TAG, "飞书 API 客户端已创建, appId=${appId.take(10)}...")
 
-        // 创建文件下载器
-        apiClient?.let { client ->
-            fileDownloader = FeiShuFileDownloader(context, client)
-        }
-
-        wsClient = FeishuWsClient.Builder(appId, appSecret)
-            .eventHandler(eventHandler)
-            .build()
-
-        scope.launch {
-            try {
-                wsClient?.start()
-                XLog.i(TAG, "飞书 WebSocket 客户端已启动")
-            } catch (e: Exception) {
-                XLog.e(TAG, "飞书 WebSocket 客户端启动失败", e)
+            // 创建文件下载器
+            apiClient?.let { client ->
+                fileDownloader = FeiShuFileDownloader(context, client)
             }
+
+            wsClient = FeishuWsClient.Builder(appId, appSecret)
+                .eventHandler(eventHandler)
+                .build()
+            XLog.i(TAG, "飞书 WebSocket 客户端已构建, 准备启动连接...")
+
+            scope.launch {
+                try {
+                    wsClient?.start()
+                    wsConnected = true
+                    lastError = null
+                    XLog.i(TAG, "✅ 飞书 WebSocket 客户端已成功连接")
+                } catch (e: Exception) {
+                    wsConnected = false
+                    lastError = "WebSocket start 异常: ${e.javaClass.simpleName}: ${e.message}"
+                    XLog.e(TAG, "❌ 飞书 WebSocket 客户端启动失败: $lastError", e)
+                }
+            }
+        } catch (e: Exception) {
+            wsConnected = false
+            lastError = "初始化异常: ${e.javaClass.simpleName}: ${e.message}"
+            XLog.e(TAG, "❌ 飞书通道初始化失败: $lastError", e)
         }
     }
 
     override fun disconnect() {
         val oldWsClient = wsClient ?: return
         wsClient = null
+        wsConnected = false
+        lastError = null
         apiClient = null
         fileDownloader = null
         lastMessageId = null

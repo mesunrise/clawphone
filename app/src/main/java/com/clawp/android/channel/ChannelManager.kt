@@ -232,6 +232,15 @@ object ChannelManager {
     }
 
     /**
+     * 获取飞书最近一次连接错误信息（用于诊断）
+     */
+    @JvmStatic
+    fun getFeiShuLastError(): String? {
+        val handler = handlers[Channel.FEISHU] as? com.clawp.android.channel.feishu.FeiShuChannelHandler
+        return handler?.lastError
+    }
+
+    /**
      * 检查是否有消息监听器（用于诊断）
      */
     @JvmStatic

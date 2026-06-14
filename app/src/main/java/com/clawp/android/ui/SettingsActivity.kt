@@ -378,11 +378,15 @@ class SettingsActivity : AppCompatActivity() {
         // 检查飞书连接状态
         val isConnected = ChannelManager.isFeiShuConnected()
         val hasListener = ChannelManager.hasMessageListener()
+        val lastError = ChannelManager.getFeiShuLastError()
 
         val statusMsg = buildString {
             appendLine("飞书连接诊断:")
             appendLine("- App ID: ${feishuAppId.take(10)}...")
             appendLine("- WebSocket 连接: ${if (isConnected) "✅ 已连接" else "❌ 未连接"}")
+            if (lastError != null) {
+                appendLine("- 错误详情: $lastError")
+            }
             appendLine("- 消息监听器: ${if (hasListener) "✅ 已注册" else "❌ 未注册"}")
             appendLine()
             appendLine("请在飞书中向机器人发送消息测试")
