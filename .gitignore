@@ -32,7 +32,6 @@ output.json
 
 # Build outputs
 app/build/
-app/release/
 
 # Docs
 docs/conversations/
