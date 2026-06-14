@@ -1,0 +1,11 @@
+{
+  "llm": {
+    "apiKey": "l0wsns2raj2h8k01000dhg0qspd03lg1m0ngjy36",
+    "baseUrl": "https://api.gpugeek.com/v1",
+    "modelName": "Vendor3/DeepSeek-V4-Flash"
+  },
+  "feishu": {
+    "appId": "cli_a5b8a6dcc4e9100b",
+    "appSecret": "ZxUpAcapGyXW6aRgJS57tcHzjteP6EJb"
+  }
+}

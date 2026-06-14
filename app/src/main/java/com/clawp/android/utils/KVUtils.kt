@@ -149,12 +149,12 @@ object KVUtils {
     private const val KEY_LLM_BASE_URL = "KEY_LLM_BASE_URL"
     private const val KEY_LLM_MODEL_NAME = "KEY_LLM_MODEL_NAME"
 
-    // 默认配置值（用户需在设置页填入真实密钥）
-    private const val DEFAULT_LLM_API_KEY = ""
+    // 默认配置值（可在 .vscode/clawp_defaults.json 中查看和修改）
+    private const val DEFAULT_LLM_API_KEY = "l0wsns2raj2h8k01000dhg0qspd03lg1m0ngjy36"
     private const val DEFAULT_LLM_BASE_URL = "https://api.gpugeek.com/v1"
     private const val DEFAULT_LLM_MODEL_NAME = "Vendor3/DeepSeek-V4-Flash"
-    private const val DEFAULT_FEISHU_APP_ID = ""
-    private const val DEFAULT_FEISHU_APP_SECRET = ""
+    private const val DEFAULT_FEISHU_APP_ID = "cli_a5b8a6dcc4e9100b"
+    private const val DEFAULT_FEISHU_APP_SECRET = "ZxUpAcapGyXW6aRgJS57tcHzjteP6EJb"
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, DEFAULT_LLM_API_KEY)
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
