@@ -737,20 +737,6 @@ public class ClawAccessibilityService extends AccessibilityService {
     }
 
     /**
-     * Gets the screen tree in a simplified format.
-     */
-    public String getScreenTree() {
-        return getScreenInfo();
-    }
-
-    /**
-     * Gets the full screen tree with all details.
-     */
-    public String getScreenTreeFull() {
-        return getScreenInfo();
-    }
-
-    /**
      * Clicks on a node (alias for performClick).
      */
     public boolean clickNode(AccessibilityNodeInfo node) {
