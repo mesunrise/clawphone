@@ -177,7 +177,21 @@ public class ClawAccessibilityService extends AccessibilityService {
         if (node == null) {
             return false;
         }
-        return node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        if (node.isClickable()) {
+            return node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        }
+        // Try clicking the parent if the node itself is not clickable
+        AccessibilityNodeInfo parent = node.getParent();
+        while (parent != null) {
+            if (parent.isClickable()) {
+                return parent.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            }
+            parent = parent.getParent();
+        }
+        // Fallback: tap at center of node bounds
+        Rect bounds = new Rect();
+        node.getBoundsInScreen(bounds);
+        return performTap(bounds.centerX(), bounds.centerY());
     }
 
     /**
@@ -246,82 +260,234 @@ public class ClawAccessibilityService extends AccessibilityService {
     // ======================== UI Tree Extraction ========================
 
     /**
-     * Builds a simplified UI tree representation for LLM consumption.
-     * Returns JSON string with node hierarchy, text, bounds, and actions.
+     * Collects a tree representation of the current screen for AI analysis.
+     * Uses a compact indented text format that's token-efficient for LLMs.
+     * Only includes "meaningful" nodes (ones with text/description/interactivity).
      */
     public String getScreenInfo() {
+        return getScreenTree();
+    }
+
+    /**
+     * Builds a compact text UI tree for LLM consumption.
+     * Filters out non-meaningful nodes to save tokens.
+     */
+    public String getScreenTree() {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) {
-            return "{\"error\": \"No root node available\"}";
+            return null;
         }
-
         StringBuilder sb = new StringBuilder();
-        sb.append("{\"nodes\": [");
-        buildNodeTree(root, sb, 0, true);
-        sb.append("]}");
+        buildNodeTree(root, sb, 0);
         return sb.toString();
     }
 
-    private void buildNodeTree(AccessibilityNodeInfo node, StringBuilder sb, int depth, boolean isFirst) {
+    /**
+     * Builds a FULL tree including ALL nodes with all properties (debug only).
+     */
+    public String getScreenTreeFull() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        buildNodeTreeFull(root, sb, 0);
+        return sb.toString();
+    }
+
+    private void buildNodeTree(AccessibilityNodeInfo node, StringBuilder sb, int depth) {
         if (node == null) {
             return;
         }
 
-        if (!isFirst) {
-            sb.append(",");
-        }
-
-        sb.append("{");
-        sb.append("\"depth\":").append(depth).append(",");
-        sb.append("\"class\":\"").append(escapeJson(node.getClassName())).append("\",");
-        sb.append("\"text\":\"").append(escapeJson(node.getText())).append("\",");
-        sb.append("\"contentDesc\":\"").append(escapeJson(node.getContentDescription())).append("\",");
-        sb.append("\"viewId\":\"").append(escapeJson(node.getViewIdResourceName())).append("\",");
-
-        Rect bounds = new Rect();
-        node.getBoundsInScreen(bounds);
-        sb.append("\"bounds\":{\"left\":").append(bounds.left)
-                .append(",\"top\":").append(bounds.top)
-                .append(",\"right\":").append(bounds.right)
-                .append(",\"bottom\":").append(bounds.bottom).append("},");
-
-        sb.append("\"clickable\":").append(node.isClickable()).append(",");
-        sb.append("\"longClickable\":").append(node.isLongClickable()).append(",");
-        sb.append("\"scrollable\":").append(node.isScrollable()).append(",");
-        sb.append("\"editable\":").append(node.isEditable()).append(",");
-        sb.append("\"checkable\":").append(node.isCheckable()).append(",");
-        sb.append("\"checked\":").append(node.isChecked()).append(",");
-        sb.append("\"focusable\":").append(node.isFocusable()).append(",");
-        sb.append("\"focused\":").append(node.isFocused()).append(",");
-        sb.append("\"selected\":").append(node.isSelected()).append(",");
-        sb.append("\"enabled\":").append(node.isEnabled());
-
-        int childCount = node.getChildCount();
-        if (childCount > 0) {
-            sb.append(",\"children\":[");
-            for (int i = 0; i < childCount; i++) {
+        // Skip nodes not visible to user (off-screen elements in scrollable containers)
+        if (!node.isVisibleToUser()) {
+            for (int i = 0; i < node.getChildCount(); i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) {
-                    buildNodeTree(child, sb, depth + 1, i == 0);
+                    buildNodeTree(child, sb, depth);
                     child.recycle();
                 }
             }
-            sb.append("]");
+            return;
         }
 
-        sb.append("}");
+        // Determine if node is "meaningful" (has text/desc/interactive/scrollable/editable/progress/slider)
+        boolean hasText = node.getText() != null && node.getText().length() > 0;
+        boolean hasDesc = node.getContentDescription() != null && node.getContentDescription().length() > 0;
+        boolean isInteractive = node.isClickable() || node.isScrollable() || node.isEditable()
+                || node.isCheckable() || node.isLongClickable();
+        boolean isSlider = isSliderNode(node);
+        CharSequence cn = node.getClassName();
+        boolean isProgress = cn != null && cn.toString().contains("ProgressBar");
+        boolean isMeaningful = hasText || hasDesc || isInteractive || isSlider || isProgress;
+
+        if (isMeaningful) {
+            String indent = "  ".repeat(depth);
+            sb.append(indent);
+
+            // Simplified class name (e.g., android.widget.TextView → TextView)
+            CharSequence className = node.getClassName();
+            if (className != null) {
+                String cls = className.toString();
+                int dotIdx = cls.lastIndexOf('.');
+                sb.append("[").append(dotIdx >= 0 ? cls.substring(dotIdx + 1) : cls).append("]");
+            }
+
+            if (hasText) {
+                CharSequence text = node.getText();
+                if (text.length() > 100) {
+                    sb.append(" text=\"").append(text.subSequence(0, 100)).append("...\"");
+                } else {
+                    sb.append(" text=\"").append(text).append("\"");
+                }
+            }
+            if (hasDesc) {
+                sb.append(" desc=\"").append(node.getContentDescription()).append("\"");
+            }
+            if (node.isClickable()) {
+                sb.append(" [clickable]");
+            }
+            if (node.isLongClickable()) {
+                sb.append(" [long-clickable]");
+            }
+            if (node.isScrollable()) {
+                sb.append(" [scrollable]");
+            }
+            if (node.isEditable()) {
+                sb.append(" [editable]");
+            }
+            if (node.isCheckable()) {
+                sb.append(node.isChecked() ? " [checked]" : " [unchecked]");
+            }
+            if (!node.isEnabled()) {
+                sb.append(" [disabled]");
+            }
+            if (node.isFocused()) {
+                sb.append(" [focused]");
+            }
+            if (isProgress) {
+                sb.append(" [loading]");
+            }
+
+            Rect bounds = new Rect();
+            node.getBoundsInScreen(bounds);
+            sb.append(" bounds=").append(bounds.toShortString());
+
+            sb.append("\n");
+        }
+
+        // Children: maintain same depth level if parent was skipped (not meaningful)
+        int childDepth = isMeaningful ? depth + 1 : depth;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) {
+                buildNodeTree(child, sb, childDepth);
+                child.recycle();
+            }
+        }
     }
 
-    private String escapeJson(CharSequence cs) {
-        if (cs == null) {
-            return "";
+    /**
+     * Full node tree builder - outputs ALL nodes with ALL properties, no filtering (debug only).
+     */
+    private void buildNodeTreeFull(AccessibilityNodeInfo node, StringBuilder sb, int depth) {
+        if (node == null) {
+            return;
         }
-        String s = cs.toString();
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+
+        String indent = "  ".repeat(depth);
+        sb.append(indent);
+
+        // className
+        CharSequence className = node.getClassName();
+        if (className != null) {
+            String cls = className.toString();
+            int dotIdx = cls.lastIndexOf('.');
+            sb.append("[").append(dotIdx >= 0 ? cls.substring(dotIdx + 1) : cls).append("]");
+        }
+
+        // text
+        if (node.getText() != null && node.getText().length() > 0) {
+            CharSequence text = node.getText();
+            if (text.length() > 200) {
+                sb.append(" text=\"").append(text.subSequence(0, 200)).append("...\"");
+            } else {
+                sb.append(" text=\"").append(text).append("\"");
+            }
+        }
+
+        // contentDescription
+        if (node.getContentDescription() != null && node.getContentDescription().length() > 0) {
+            sb.append(" desc=\"").append(node.getContentDescription()).append("\"");
+        }
+
+        // resource-id
+        String resId = node.getViewIdResourceName();
+        if (resId != null && !resId.isEmpty()) {
+            sb.append(" id=\"").append(resId).append("\"");
+        }
+
+        // package
+        if (node.getPackageName() != null) {
+            sb.append(" pkg=\"").append(node.getPackageName()).append("\"");
+        }
+
+        // interaction states
+        if (node.isClickable()) sb.append(" [clickable]");
+        if (node.isLongClickable()) sb.append(" [long-clickable]");
+        if (node.isScrollable()) sb.append(" [scrollable]");
+        if (node.isEditable()) sb.append(" [editable]");
+        if (node.isCheckable()) sb.append(node.isChecked() ? " [checked]" : " [unchecked]");
+        if (!node.isEnabled()) sb.append(" [disabled]");
+        if (node.isFocused()) sb.append(" [focused]");
+        if (node.isSelected()) sb.append(" [selected]");
+        if (!node.isVisibleToUser()) sb.append(" [invisible]");
+
+        // slider range info
+        if (isSliderNode(node)) {
+            sb.append(" [slider]");
+            AccessibilityNodeInfo.RangeInfo rangeInfo = node.getRangeInfo();
+            if (rangeInfo != null) {
+                sb.append(String.format(" range=[%.0f-%.0f, current=%.0f]",
+                        rangeInfo.getMin(), rangeInfo.getMax(), rangeInfo.getCurrent()));
+            }
+        }
+
+        // progress bar
+        CharSequence cn = node.getClassName();
+        if (cn != null && cn.toString().contains("ProgressBar")) {
+            sb.append(" [loading]");
+        }
+
+        // bounds
+        Rect bounds = new Rect();
+        node.getBoundsInScreen(bounds);
+        sb.append(" bounds=").append(bounds.toShortString());
+
+        sb.append("\n");
+
+        // recurse all children
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) {
+                buildNodeTreeFull(child, sb, depth + 1);
+                child.recycle();
+            }
+        }
+    }
+
+    /**
+     * Check if a node is a slider/seekbar type.
+     */
+    private boolean isSliderNode(AccessibilityNodeInfo node) {
+        CharSequence className = node.getClassName();
+        if (className == null) return false;
+        String cls = className.toString();
+        return cls.contains("SeekBar")
+                || cls.contains("Slider")
+                || cls.contains("RatingBar")
+                || node.getRangeInfo() != null;
     }
 
     // ======================== Screen Capture ========================

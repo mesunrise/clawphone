@@ -2,6 +2,7 @@ package com.clawp.android
 
 import android.app.Application
 import android.os.Build
+import com.clawp.android.agent.AgentConfig
 import com.clawp.android.agent.DefaultAgentService
 import com.clawp.android.channel.ChannelManager
 import com.clawp.android.service.ForegroundService
@@ -22,6 +23,8 @@ class ClawApplication : Application() {
             private set
     }
 
+    lateinit var taskOrchestrator: TaskOrchestrator
+        private set
     private lateinit var videoPublishCoordinator: VideoPublishCoordinator
 
     override fun onCreate() {
@@ -37,8 +40,14 @@ class ClawApplication : Application() {
         DefaultAgentService.FILE_LOGGING_ENABLED = BuildConfig.DEBUG
         DefaultAgentService.FILE_LOGGING_CACHE_DIR = cacheDir
 
+        // 创建任务编排器（Agent 消息路由核心）
+        taskOrchestrator = TaskOrchestrator(
+            agentConfigProvider = { buildAgentConfig() },
+            onTaskFinished = { }
+        )
+
         // 初始化视频发布协调器
-        videoPublishCoordinator = VideoPublishCoordinator(this)
+        videoPublishCoordinator = VideoPublishCoordinator(this, taskOrchestrator)
 
         // 启动前台服务
         if (!ForegroundService.isRunning()) {
@@ -51,6 +60,7 @@ class ClawApplication : Application() {
         // 异步初始化 Agent 和通道
         Thread({
             if (KVUtils.hasLlmConfig()) {
+                taskOrchestrator.initAgent()
                 initChannels()
             }
 
@@ -78,5 +88,19 @@ class ClawApplication : Application() {
         ChannelManager.getFeiShuFileDownloader()?.let { downloader ->
             videoPublishCoordinator.setFileDownloader(downloader)
         }
+    }
+
+    /**
+     * 从 KV 存储构建 AgentConfig，用于 agentConfigProvider 回调
+     */
+    private fun buildAgentConfig(): AgentConfig {
+        return AgentConfig.Builder()
+            .apiKey(KVUtils.getLlmApiKey())
+            .baseUrl(KVUtils.getLlmBaseUrl())
+            .modelName(KVUtils.getLlmModelName())
+            .maxIterations(30)
+            .temperature(0.1)
+            .streaming(false)
+            .build()
     }
 }

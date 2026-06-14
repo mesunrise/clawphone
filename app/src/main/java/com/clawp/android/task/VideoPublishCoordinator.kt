@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.clawp.android.R
+import com.clawp.android.TaskOrchestrator
 import com.clawp.android.channel.Channel
 import com.clawp.android.channel.ChannelManager
 import com.clawp.android.channel.feishu.FeiShuFileDownloader
@@ -19,10 +20,12 @@ import kotlinx.coroutines.launch
 
 /**
  * 视频发布协调器
- * 负责协调文件下载、批次收集、任务解析和发布编排
+ * 负责协调文件下载、批次收集、任务解析和发布编排。
+ * 非视频发布相关的通用消息会转发给 TaskOrchestrator（Agent）处理。
  */
 class VideoPublishCoordinator(
-    private val context: Context
+    private val context: Context,
+    private val taskOrchestrator: TaskOrchestrator
 ) : ChannelManager.OnFileMessageReceivedListener {
 
     companion object {
@@ -30,6 +33,13 @@ class VideoPublishCoordinator(
         private const val NOTIFICATION_CHANNEL_ID = "clawp_message_channel"
         private const val NOTIFICATION_ID_TEXT = 2001
         private const val NOTIFICATION_ID_FILE = 2002
+
+        // 发布关键词（用于判断是否需要走视频发布流程）
+        private val PUBLISH_KEYWORDS = setOf(
+            "发", "发布", "发到", "发抖音", "发到抖音",
+            "上传", "传到", "传抖音",
+            "post", "upload", "publish"
+        )
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -46,7 +56,7 @@ class VideoPublishCoordinator(
         createNotificationChannel()
         ChannelManager.setOnFileMessageReceivedListener(this)
 
-        // 同时监听文本消息用于批次收集
+        // 同时监听文本消息
         ChannelManager.setOnMessageReceivedListener(object : ChannelManager.OnMessageReceivedListener {
             override fun onMessageReceived(channel: Channel, message: String, messageID: String, chatId: String) {
                 XLog.i(TAG, "========================================")
@@ -64,14 +74,7 @@ class VideoPublishCoordinator(
                     message.take(50)
                 )
 
-                // 回复确认消息（验证阶段）
-                ChannelManager.sendMessage(
-                    channel,
-                    "✅ 收到消息: $message",
-                    messageID
-                )
-
-                // 简化测试：直接响应"打开抖音"命令
+                // 调试命令：打开抖音
                 if (message.trim() == "打开抖音") {
                     XLog.i(TAG, "检测到测试命令：打开抖音")
                     scope.launch {
@@ -82,7 +85,6 @@ class VideoPublishCoordinator(
                                 ChannelManager.sendMessage(channel, "❌ Accessibility Service 未运行，请在设置中启用", messageID)
                                 return@launch
                             }
-
                             XLog.i(TAG, "开始打开抖音极速版...")
                             val result = service.openApp("抖音极速版")
                             if (result) {
@@ -102,7 +104,6 @@ class VideoPublishCoordinator(
 
                 // 调试命令：列出已安装的应用
                 if (message.trim() == "列出应用") {
-                    XLog.i(TAG, "检测到调试命令：列出应用")
                     scope.launch {
                         try {
                             val service = com.clawp.android.service.ClawAccessibilityService.getInstance()
@@ -110,10 +111,8 @@ class VideoPublishCoordinator(
                                 ChannelManager.sendMessage(channel, "❌ Accessibility Service 未运行", messageID)
                                 return@launch
                             }
-
                             val apps = service.getInstalledApps()
                             val douyinApps = apps.filter { it.contains("抖音", ignoreCase = true) }
-
                             if (douyinApps.isEmpty()) {
                                 ChannelManager.sendMessage(channel, "未找到包含'抖音'的应用\n\n所有应用数量: ${apps.size}", messageID)
                             } else {
@@ -130,13 +129,11 @@ class VideoPublishCoordinator(
 
                 // 调试命令：查看日志
                 if (message.trim().startsWith("查看日志")) {
-                    XLog.i(TAG, "检测到调试命令：查看日志")
                     scope.launch {
                         try {
                             val parts = message.trim().split(" ")
                             val filter = if (parts.size > 1) parts[1] else null
                             val count = if (parts.size > 2) parts[2].toIntOrNull() ?: 50 else 50
-
                             com.clawp.android.utils.DebugLogCollector.sendToFeishu(messageID, filter, count)
                         } catch (e: Exception) {
                             XLog.e(TAG, "查看日志异常", e)
@@ -148,18 +145,41 @@ class VideoPublishCoordinator(
 
                 // 调试命令：清空日志
                 if (message.trim() == "清空日志") {
-                    XLog.i(TAG, "检测到调试命令：清空日志")
                     com.clawp.android.utils.DebugLogCollector.clear()
                     ChannelManager.sendMessage(channel, "✅ 日志已清空", messageID)
                     return
                 }
 
-                // 使用真实的 chatId 进行批次收集
-                batchCollector.addTextMessage(chatId, message, messageID)
+                // 判断是否包含视频发布意图（如 "发布"、"发抖音" 等）
+                val hasPublishIntent = PUBLISH_KEYWORDS.any { message.contains(it) }
+                if (hasPublishIntent) {
+                    // 视频发布流程：添加到批次收集器等待视频文件
+                    batchCollector.addTextMessage(chatId, message, messageID)
+                } else {
+                    // 通用命令 → 转发给 Agent 处理
+                    XLog.i(TAG, "非视频发布消息，转发给 Agent 处理")
+                    ChannelManager.sendMessage(
+                        channel,
+                        com.clawp.android.ClawApplication.instance.getString(R.string.channel_msg_agent_started),
+                        messageID
+                    )
+                    scope.launch {
+                        try {
+                            if (!taskOrchestrator.tryAcquireTask(messageID, channel)) {
+                                ChannelManager.sendMessage(channel, "⏳ 当前有任务正在执行中，请等待任务完成后再发送新指令", messageID)
+                                return@launch
+                            }
+                            taskOrchestrator.startNewTask(channel, message, messageID)
+                        } catch (e: Exception) {
+                            XLog.e(TAG, "Agent task failed", e)
+                            ChannelManager.sendMessage(channel, "❌ Agent 执行异常: ${e.message}", messageID)
+                        }
+                    }
+                }
             }
         })
 
-        XLog.i(TAG, "VideoPublishCoordinator initialized")
+        XLog.i(TAG, "VideoPublishCoordinator initialized with Agent delegation")
     }
 
     /**

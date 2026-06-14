@@ -47,6 +47,17 @@
     <string name="agent_api_call_failed">AI service call failed: %s</string>
     <string name="agent_max_iterations">Reached maximum iterations (%d) without completing the task</string>
 
+    <!-- Channel messages -->
+    <string name="channel_msg_task_cancelled">Task cancelled</string>
+    <string name="channel_msg_service_not_ready">Agent service is not ready, please check configuration</string>
+    <string name="channel_msg_tool_success">Success</string>
+    <string name="channel_msg_tool_failure">Failed</string>
+    <string name="channel_msg_tool_execution">%1$s: %2$s</string>
+    <string name="channel_msg_task_error">Task error: %s</string>
+    <string name="channel_msg_system_dialog_blocked">System dialog detected, task stopped. Screenshot attached.</string>
+    <string name="channel_msg_agent_started">Agent started processing your request…</string>
+    <string name="channel_msg_no_accessibility">Accessibility service is not enabled, cannot execute task</string>
+
     <!-- Tool strings -->
     <string name="tool_no_storage_permission">No file read/write permission</string>
     <string name="tool_file_not_found">File not found: %s</string>

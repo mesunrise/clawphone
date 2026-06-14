@@ -391,16 +391,30 @@ class DefaultAgentService : AgentService {
 
                 val toolName = toolRequest.name()
                 val toolArgs = toolRequest.arguments()
-                callback.onToolCall(iterations, toolRequest.id(), toolName, toolArgs)
+                val displayName = ToolRegistry.getInstance().getTool(toolName)?.getDisplayName() ?: toolName
+                callback.onToolCall(iterations, toolRequest.id(), displayName, toolArgs)
                 com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "工具调用: $toolName($toolArgs)")
 
                 val toolStartMs = System.currentTimeMillis()
                 val result = LangChain4jToolBridge.executeToolRequest(toolRequest)
                 val toolElapsed = System.currentTimeMillis() - toolStartMs
-                val displayName = ToolRegistry.getInstance().getTool(toolName)?.getDisplayName() ?: toolName
                 val toolResult = GSON.fromJson(result, ToolResult::class.java)
                 com.clawp.android.utils.DebugLogCollector.log(TAG, "INFO", "工具结果: $toolName (${toolElapsed}ms) success=${toolResult.isSuccess}")
                 callback.onToolResult(iterations, toolRequest.id(), displayName, toolArgs, toolResult)
+
+                // 检测到系统弹窗阻塞 → 截图通知用户并结束任务
+                if (!toolResult.isSuccess && toolResult.error == com.clawp.android.tool.impl.GetScreenInfoTool.SYSTEM_DIALOG_BLOCKED) {
+                    XLog.w(TAG, "System dialog blocked, notifying user and stopping task")
+                    callback.onSystemDialogBlocked(iterations, totalTokens)
+                    return
+                }
+
+                // finish 工具 → 任务完成
+                if (toolName == "finish" && toolResult.isSuccess) {
+                    val finishData = toolResult.data
+                    callback.onComplete(iterations, finishData ?: ClawApplication.instance.getString(R.string.agent_task_completed), totalTokens)
+                    return
+                }
 
                 // 死循环检测：记录本轮指纹
                 if (toolName == "get_screen_info") {

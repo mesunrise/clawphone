@@ -1,6 +1,6 @@
 package com.clawp.android.agent
 
-enum class LlmProvider { ANTHROPIC }
+enum class LlmProvider { OPENAI, ANTHROPIC }
 
 data class AgentConfig(
     val apiKey: String,
