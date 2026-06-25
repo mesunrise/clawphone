@@ -1,0 +1,33 @@
+# 示例：惊喜红包 APP 首页屏幕树快照
+# 捕获时间：2025-06-25
+# APP 包名：com.example.hongbao
+
+android.widget.FrameLayout
+  android.widget.LinearLayout (orientation=vertical)
+    android.widget.Toolbar
+      android.widget.TextView text="惊喜红包" desc=""
+    android.widget.FrameLayout (id="content_container")
+      android.widget.ScrollView
+        android.widget.LinearLayout (orientation=vertical)
+          android.widget.CardView (clickable=true)
+            android.widget.LinearLayout (orientation=vertical)
+              android.widget.TextView text="每日签到" desc=""
+              android.widget.TextView text="领取红包" desc=""
+              android.widget.Button text="立即领取" desc="" clickable=true enabled=true
+          android.widget.CardView (clickable=true)
+            android.widget.LinearLayout (orientation=vertical)
+              android.widget.TextView text="看视频赚红包" desc=""
+              android.widget.TextView text="完成任务赚更多" desc=""
+              android.widget.Button text="看视频" desc="" clickable=true enabled=true
+          android.widget.CardView (clickable=true)
+            android.widget.LinearLayout (orientation=vertical)
+              android.widget.TextView text="邀请好友" desc=""
+              android.widget.TextView text="邀请有奖" desc=""
+              android.widget.Button text="去邀请" desc="" clickable=true enabled=true
+          android.widget.RelativeLayout (clickable=true)
+            android.widget.TextView text="关闭广告" desc="" clickable=true enabled=true
+    android.widget.BottomNavigationView
+      android.widget.TextView text="首页" desc="" clickable=true
+      android.widget.TextView text="任务" desc="" clickable=true
+      android.widget.TextView text="钱包" desc="" clickable=true
+      android.widget.TextView text="我的" desc="" clickable=true

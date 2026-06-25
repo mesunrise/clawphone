@@ -12,75 +12,219 @@
         android:textSize="24sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="32dp" />
-
-    <!-- 无障碍服务状态 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/home_accessibility_status"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginTop="16dp" />
-
-    <TextView
-        android:id="@+id/tv_accessibility_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/home_accessibility_disabled"
-        android:textSize="14sp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btn_open_accessibility"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/home_btn_open_accessibility"
         android:layout_marginBottom="16dp" />
 
-    <!-- LLM 配置状态 -->
-    <TextView
+    <!-- Tab bar -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/home_llm_config_status"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginTop="16dp" />
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
 
-    <TextView
-        android:id="@+id/tv_llm_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/home_llm_not_configured"
-        android:textSize="14sp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp" />
+        <Button
+            android:id="@+id/tab_agent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/home_tab_agent"
+            android:textAllCaps="false" />
 
-    <!-- 飞书通道状态 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/home_feishu_status"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginTop="16dp" />
+        <Button
+            android:id="@+id/tab_script"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/home_tab_script"
+            android:textAllCaps="false" />
+    </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_feishu_status"
+    <!-- ============================================================ -->
+    <!-- Agent Panel (original content) -->
+    <!-- ============================================================ -->
+    <LinearLayout
+        android:id="@+id/panel_agent"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/home_feishu_disconnected"
-        android:textSize="14sp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-    <!-- 设置按钮 -->
-    <Button
-        android:id="@+id/btn_settings"
+        <!-- 无障碍服务状态 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_accessibility_status"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/tv_accessibility_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_accessibility_disabled"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_open_accessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_btn_open_accessibility"
+            android:layout_marginBottom="16dp" />
+
+        <!-- LLM 配置状态 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_llm_config_status"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/tv_llm_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_llm_not_configured"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 飞书通道状态 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_feishu_status"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/tv_feishu_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_feishu_disconnected"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 设置按钮 -->
+        <Button
+            android:id="@+id/btn_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_btn_settings"
+            android:layout_marginTop="32dp" />
+
+    </LinearLayout>
+
+    <!-- ============================================================ -->
+    <!-- Script Panel -->
+    <!-- ============================================================ -->
+    <LinearLayout
+        android:id="@+id/panel_script"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/home_btn_settings"
-        android:layout_marginTop="32dp" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_script_list_title"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="0.3"
+            android:background="#11000000"
+            android:padding="4dp">
+
+            <LinearLayout
+                android:id="@+id/script_list_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <TextView
+            android:id="@+id/tv_script_selected"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_script_none"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_script_state"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_script_state_idle"
+            android:textSize="14sp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_script_round"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_script_round_idle"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_start_script"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/home_script_start"
+                android:enabled="false" />
+
+            <Button
+                android:id="@+id/btn_stop_script"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/home_script_stop"
+                android:enabled="false"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/home_script_log_title"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <ScrollView
+            android:id="@+id/scroll_script_log"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#11000000"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/tv_script_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:textIsSelectable="true" />
+        </ScrollView>
+
+    </LinearLayout>
 
 </LinearLayout>

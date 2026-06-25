@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "name": "惊喜红包自动任务",
+    "version": "1.0",
+    "description": "自动完成惊喜红包APP的观看视频任务"
+  },
+  "config": {
+    "targetPackage": "com.example.hongbao",
+    "loopCount": 1000,
+    "roundDelay": { "min": 3, "max": 5 }
+  },
+  "setup": [
+    { "type": "open_app", "package": "com.example.hongbao" },
+    { "type": "wait", "durationMs": 2000 }
+  ],
+  "rules": [
+    {
+      "name": "不在目标APP时切换",
+      "conditions": [
+        { "type": "current_app_not", "package": "{{config.targetPackage}}" }
+      ],
+      "actions": [
+        { "type": "open_app", "package": "{{config.targetPackage}}" },
+        { "type": "wait", "durationMs": 2000 },
+        { "type": "restart_round" }
+      ]
+    },
+    {
+      "name": "邀请有奖+看视频领金币 → 点击看视频",
+      "conditions": [
+        { "type": "text_exists", "text": "邀请有奖" },
+        { "type": "text_exists", "text": "看视频" }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "target": { "by": "text", "value": "看视频", "match": "contains" },
+          "humanize": { "offsetPx": 5, "tapDurationMs": 150 }
+        },
+        { "type": "end_round" }
+      ]
+    },
+    {
+      "name": "看完视频+完成视频要求 → 点击关闭",
+      "conditions": [
+        { "type": "text_exists", "text": "看完视频" },
+        { "type": "text_exists", "text": "完成视频要求" }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "target": { "by": "text", "value": "关闭", "match": "contains" },
+          "humanize": { "offsetPx": 5, "tapDurationMs": 150 }
+        },
+        { "type": "end_round" }
+      ]
+    },
+    {
+      "name": "兜底：无匹配条件时按返回键",
+      "conditions": [],
+      "actions": [
+        { "type": "press_back" },
+        { "type": "end_round" }
+      ]
+    }
+  ]
+}

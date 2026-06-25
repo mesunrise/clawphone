@@ -5,6 +5,9 @@ import android.os.Build
 import com.clawp.android.agent.AgentConfig
 import com.clawp.android.agent.DefaultAgentService
 import com.clawp.android.channel.ChannelManager
+import com.clawp.android.script.ScriptEngine
+import com.clawp.android.script.ScriptLoader
+import com.clawp.android.script.loader.AssetScriptLoader
 import com.clawp.android.service.ForegroundService
 import com.clawp.android.task.VideoPublishCoordinator
 import com.clawp.android.tool.ToolRegistry
@@ -25,6 +28,10 @@ class ClawApplication : Application() {
 
     lateinit var taskOrchestrator: TaskOrchestrator
         private set
+    lateinit var scriptEngine: ScriptEngine
+        private set
+    lateinit var scriptLoader: ScriptLoader
+        private set
     private lateinit var videoPublishCoordinator: VideoPublishCoordinator
 
     override fun onCreate() {
@@ -33,6 +40,10 @@ class ClawApplication : Application() {
         XLog.setDEBUG(BuildConfig.DEBUG)
 
         KVUtils.init(this)
+
+        // 初始化脚本引擎和脚本加载器
+        scriptEngine = ScriptEngine()
+        scriptLoader = AssetScriptLoader(this)
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
         XLog.i(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 
