@@ -7,6 +7,7 @@ import com.clawp.android.script.model.Rule
 import com.clawp.android.script.model.Script
 import com.clawp.android.script.model.ScriptConfig
 import com.clawp.android.script.model.ScriptMeta
+import com.clawp.android.script.model.RoundDelay
 import com.clawp.android.script.model.UiTarget
 import org.json.JSONArray
 import org.json.JSONObject
