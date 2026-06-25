@@ -10,9 +10,9 @@ package com.clawp.android.script.model
 data class Action(
     val type: String,
     val `package`: String? = null,
-    val target: Target? = null,
-    val from: Target? = null,     // swipe start
-    val to: Target? = null,       // swipe end
+    val target: UiTarget? = null,
+    val from: UiTarget? = null,     // swipe start
+    val to: UiTarget? = null,       // swipe end
     val humanize: HumanizeParams? = null,
     val durationMs: Long? = null  // wait duration
 ) {

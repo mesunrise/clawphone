@@ -57,7 +57,7 @@ class SwipeExecutor : ActionExecutor {
         return if (ok) ActionResult.SUCCESS else ActionResult.FAILURE
     }
 
-    private fun extractCoordinate(target: com.clawp.android.script.model.Target, label: String): Pair<Int, Int>? {
+    private fun extractCoordinate(target: com.clawp.android.script.model.UiTarget, label: String): Pair<Int, Int>? {
         if (target.by == "coordinate") {
             val x = target.x ?: return null
             val y = target.y ?: return null

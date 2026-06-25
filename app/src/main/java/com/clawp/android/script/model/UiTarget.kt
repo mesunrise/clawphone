@@ -9,7 +9,7 @@ package com.clawp.android.script.model
  *  - "id"         — match by resource-id
  *  - "coordinate" — absolute pixel position (x, y required)
  */
-data class Target(
+data class UiTarget(
     val by: String,
     val value: String? = null,
     val match: String? = null,   // "contains" (default), "exact", "startsWith", "endsWith"
@@ -19,15 +19,15 @@ data class Target(
 ) {
     init {
         require(by in setOf("text", "desc", "id", "coordinate")) {
-            "Target.by must be one of [text, desc, id, coordinate], got '$by'"
+            "UiTarget.by must be one of [text, desc, id, coordinate], got '$by'"
         }
         if (by == "coordinate") {
             require(x != null && y != null) {
-                "Target.by='coordinate' requires x and y"
+                "UiTarget.by='coordinate' requires x and y"
             }
         } else {
             require(!value.isNullOrBlank()) {
-                "Target.by='$by' requires a non-blank value"
+                "UiTarget.by='$by' requires a non-blank value"
             }
         }
     }

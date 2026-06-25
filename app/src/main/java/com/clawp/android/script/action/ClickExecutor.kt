@@ -5,7 +5,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.clawp.android.script.HumanizeUtils
 import com.clawp.android.script.model.Action
 import com.clawp.android.script.model.ActionResult
-import com.clawp.android.script.model.Target
+import com.clawp.android.script.model.UiTarget
 import com.clawp.android.service.ClawAccessibilityService
 
 /**
@@ -61,7 +61,7 @@ class ClickExecutor : ActionExecutor {
          * Locate a single node matching [target].
          * Returns null if no matching node found.
          */
-        fun locateNode(target: Target, service: ClawAccessibilityService): AccessibilityNodeInfo? {
+        fun locateNode(target: UiTarget, service: ClawAccessibilityService): AccessibilityNodeInfo? {
             val nodes = when (target.by) {
                 "text" -> service.findNodesByText(target.value ?: return null)
                 "desc" -> service.findNodesByText(target.value ?: return null) // contentDescription

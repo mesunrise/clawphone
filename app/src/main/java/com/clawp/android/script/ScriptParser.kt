@@ -1,6 +1,7 @@
 package com.clawp.android.script
 
-import com.clawp.android.script.model.*
+import com.clawp.android.script.model.HumanizeParams
+import com.clawp.android.script.model.UiTarget
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -49,120 +50,182 @@ object ScriptParser {
         if (rulesJson.length() == 0) {
             throw IllegalArgumentException("rules array must not be empty")
         }
-        val rules = mutableListOf<Rule>()
-        for (i in 0 until rulesJson.length()) {
-            rules.add(parseRule(rulesJson.getJSONObject(i)))
+        val rules = parseRules(rulesJson)
+
+        return Script(meta, config, setup, rules)
+    }
+
+    /**
+     * Parse with pre-parsed config (for variable substitution).
+     */
+    fun parse(jsonString: String, config: com.clawp.android.script.model.ScriptConfig): Script {
+        val raw = JSONObject(jsonString)
+        val substituted = applyVariables(raw, config)
+        
+        val metaJson = substituted.optJSONObject("meta")
+            ?: throw IllegalArgumentException("Missing required field: meta")
+        val meta = parseMeta(metaJson)
+
+        val rulesJson = substituted.optJSONArray("rules")
+            ?: throw IllegalArgumentException("Missing required field: rules")
+        val rules = parseRules(rulesJson)
+
+        val setup = if (substituted.has("setup")) {
+            parseActions(substituted.getJSONArray("setup"))
+        } else {
+            emptyList()
         }
 
-        return Script(meta = meta, config = config, setup = setup, rules = rules)
+        return Script(meta, config, setup, rules)
     }
 
     // ── meta ──────────────────────────────────────────────────────────
 
-    private fun parseMeta(json: JSONObject): ScriptMeta {
-        val name = json.optString("name", null)
-            ?: throw IllegalArgumentException("meta.name is required")
-        return ScriptMeta(
-            name = name,
-            version = json.optString("version", null)?.takeIf { it.isNotEmpty() },
-            description = json.optString("description", null)?.takeIf { it.isNotEmpty() }
+    private fun parseMeta(json: JSONObject): com.clawp.android.script.model.ScriptMeta {
+        return com.clawp.android.script.model.ScriptMeta(
+            name = json.optString("name", null) ?: throw IllegalArgumentException("meta.name is required"),
+            version = json.optString("version", "1.0"),
+            description = json.optString("description", null)
         )
     }
 
     // ── config ────────────────────────────────────────────────────────
 
-    private fun parseConfig(json: JSONObject): ScriptConfig {
+    private fun parseConfig(json: JSONObject): com.clawp.android.script.model.ScriptConfig {
         val targetPackage = json.optString("targetPackage", null)
             ?: throw IllegalArgumentException("config.targetPackage is required")
-        return ScriptConfig(
+        
+        val loopCount = json.optInt("loopCount", 100)
+        val loopDurationSec = json.optLong("loopDurationSec", 0)
+
+        val roundDelay = if (json.has("roundDelay")) {
+            parseRoundDelay(json.getJSONObject("roundDelay"))
+        } else {
+            com.clawp.android.script.model.RoundDelay(2, 4)
+        }
+
+        return com.clawp.android.script.model.ScriptConfig(
             targetPackage = targetPackage,
-            loopCount = json.optInt("loopCount", 1000).takeIf { it > 0 } ?: 1000,
-            loopDurationSec = if (json.has("loopDurationSec")) json.getInt("loopDurationSec") else null,
-            roundDelay = if (json.has("roundDelay")) {
-                parseRoundDelay(json.getJSONObject("roundDelay"))
-            } else {
-                RoundDelay()
-            }
+            loopCount = loopCount,
+            loopDurationSec = loopDurationSec,
+            roundDelay = roundDelay
         )
     }
 
-    private fun parseRoundDelay(json: JSONObject): RoundDelay {
-        return RoundDelay(
-            min = json.optDouble("min", 3.0),
-            max = json.optDouble("max", 5.0)
+    private fun parseRoundDelay(json: JSONObject): com.clawp.android.script.model.RoundDelay {
+        return com.clawp.android.script.model.RoundDelay(
+            min = json.optInt("min", 2),
+            max = json.optInt("max", 4)
         )
     }
 
     // ── rules ─────────────────────────────────────────────────────────
 
-    private fun parseRule(json: JSONObject): Rule {
-        val conditions = if (json.has("conditions") && !json.isNull("conditions")) {
-            parseConditions(json.getJSONArray("conditions"))
+    private fun parseRules(arr: JSONArray): List<com.clawp.android.script.model.Rule> {
+        val list = mutableListOf<com.clawp.android.script.model.Rule>()
+        for (i in 0 until arr.length()) {
+            list.add(parseRule(arr.getJSONObject(i)))
+        }
+        return list
+    }
+
+    private fun parseRule(json: JSONObject): com.clawp.android.script.model.Rule {
+        val name = json.optString("name", null)?.takeIf { it.isNotEmpty() }
+        val conditionsJson = json.optJSONArray("conditions")
+        val conditions = if (conditionsJson != null && conditionsJson.length() > 0) {
+            parseConditions(conditionsJson)
         } else {
             emptyList()
         }
-        val actions = if (json.has("actions") && !json.isNull("actions")) {
-            parseActions(json.getJSONArray("actions"))
-        } else {
-            emptyList()
-        }
-        return Rule(
-            name = json.optString("name", null)?.takeIf { it.isNotEmpty() },
-            conditions = conditions,
-            actions = actions
-        )
+        val actionsJson = json.optJSONArray("actions")
+            ?: throw IllegalArgumentException("Rule actions array is required")
+        val actions = parseActions(actionsJson)
+        
+        return com.clawp.android.script.model.Rule(name, conditions, actions)
     }
 
     // ── conditions ────────────────────────────────────────────────────
 
-    private fun parseConditions(arr: JSONArray): List<Condition> {
-        val list = mutableListOf<Condition>()
+    private fun parseConditions(arr: JSONArray): List<com.clawp.android.script.model.Condition> {
+        val list = mutableListOf<com.clawp.android.script.model.Condition>()
         for (i in 0 until arr.length()) {
             list.add(parseCondition(arr.getJSONObject(i)))
         }
         return list
     }
 
-    private fun parseCondition(json: JSONObject): Condition {
+    private fun parseCondition(json: JSONObject): com.clawp.android.script.model.Condition {
         val type = json.optString("type", null)
             ?: throw IllegalArgumentException("Condition type is required")
-        return Condition(
-            type = type,
-            text = json.optString("text", null)?.takeIf { it.isNotEmpty() },
-            desc = json.optString("desc", null)?.takeIf { it.isNotEmpty() },
-            `package` = json.optString("package", null)?.takeIf { it.isNotEmpty() },
-            match = json.optString("match", null)?.takeIf { it.isNotEmpty() },
-            by = json.optString("by", null)?.takeIf { it.isNotEmpty() },
-            value = json.optString("value", null)?.takeIf { it.isNotEmpty() },
-            operator = json.optString("operator", null)?.takeIf { it.isNotEmpty() },
-            count = if (json.has("count")) json.getInt("count") else null
-        )
+        
+        return when (type) {
+            "text_exists", "text_not_exists" -> {
+                val text = json.optString("text", null)
+                    ?: throw IllegalArgumentException("Condition '$type' requires 'text'")
+                com.clawp.android.script.model.Condition(
+                    type = type,
+                    text = text,
+                    match = json.optString("match", "contains")
+                )
+            }
+            "desc_exists" -> {
+                val desc = json.optString("desc", null)
+                    ?: throw IllegalArgumentException("Condition 'desc_exists' requires 'desc'")
+                com.clawp.android.script.model.Condition(
+                    type = type,
+                    desc = desc,
+                    match = json.optString("match", "contains")
+                )
+            }
+            "current_app_is", "current_app_not" -> {
+                val packageVal = json.optString("package", null)
+                    ?: throw IllegalArgumentException("Condition '$type' requires 'package'")
+                com.clawp.android.script.model.Condition(
+                    type = type,
+                    package = packageVal
+                )
+            }
+            "node_count" -> {
+                val by = json.optString("by", null)
+                    ?: throw IllegalArgumentException("Condition 'node_count' requires 'by'")
+                val count = json.optInt("count", 0)
+                val operator = json.optString("operator", "eq")
+                com.clawp.android.script.model.Condition(
+                    type = type,
+                    by = by,
+                    value = json.optString("value", null),
+                    operator = operator,
+                    count = count
+                )
+            }
+            else -> throw IllegalArgumentException("Unknown condition type: $type")
+        }
     }
 
     // ── actions ───────────────────────────────────────────────────────
 
-    private fun parseActions(arr: JSONArray): List<Action> {
-        val list = mutableListOf<Action>()
+    private fun parseActions(arr: JSONArray): List<com.clawp.android.script.model.Action> {
+        val list = mutableListOf<com.clawp.android.script.model.Action>()
         for (i in 0 until arr.length()) {
             list.add(parseAction(arr.getJSONObject(i)))
         }
         return list
     }
 
-    private fun parseAction(json: JSONObject): Action {
+    private fun parseAction(json: JSONObject): com.clawp.android.script.model.Action {
         val type = json.optString("type", null)
             ?: throw IllegalArgumentException("Action type is required")
-        return Action(
+        return com.clawp.android.script.model.Action(
             type = type,
             `package` = json.optString("package", null)?.takeIf { it.isNotEmpty() },
             target = if (json.has("target") && !json.isNull("target")) {
-                parseTarget(json.getJSONObject("target"))
+                parseUiTarget(json.getJSONObject("target"))
             } else null,
             from = if (json.has("from") && !json.isNull("from")) {
-                parseTarget(json.getJSONObject("from"))
+                parseUiTarget(json.getJSONObject("from"))
             } else null,
             to = if (json.has("to") && !json.isNull("to")) {
-                parseTarget(json.getJSONObject("to"))
+                parseUiTarget(json.getJSONObject("to"))
             } else null,
             humanize = if (json.has("humanize") && !json.isNull("humanize")) {
                 parseHumanize(json.getJSONObject("humanize"))
@@ -171,12 +234,12 @@ object ScriptParser {
         )
     }
 
-    // ── target ────────────────────────────────────────────────────────
+    // ── ui target ─────────────────────────────────────────────────────
 
-    private fun parseTarget(json: JSONObject): Target {
+    private fun parseUiTarget(json: JSONObject): UiTarget {
         val by = json.optString("by", null)
-            ?: throw IllegalArgumentException("Target.by is required")
-        return Target(
+            ?: throw IllegalArgumentException("UiTarget.by is required")
+        return UiTarget(
             by = by,
             value = json.optString("value", null)?.takeIf { it.isNotEmpty() },
             match = json.optString("match", null)?.takeIf { it.isNotEmpty() },
@@ -207,7 +270,7 @@ object ScriptParser {
      * actual [config.targetPackage] value, then re-parse.
      * This handles the substitution across all string fields in the JSON.
      */
-    private fun applyVariables(raw: JSONObject, config: ScriptConfig): JSONObject {
+    private fun applyVariables(raw: JSONObject, config: com.clawp.android.script.model.ScriptConfig): JSONObject {
         val substituted = raw.toString()
         val replaced = VARIABLE_PATTERN.replace(substituted, config.targetPackage)
         return JSONObject(replaced)

@@ -53,7 +53,15 @@
       "Bash(unzip -l app/release/clawp_v0.1.2_20260526_161808.apk)",
       "Bash(grep -E \"lib/.*\\\\.so$\")",
       "Bash(git checkout *)",
-      "Bash(adb logcat *)"
+      "Bash(adb logcat *)",
+      "Bash(ssh *)",
+      "Bash(pkill *)",
+      "Bash(nohup python3 log_receiver.py)",
+      "Bash(netstat -tlnp)",
+      "Bash(curl -X PUT http://localhost:50001/test.log -d \"test log content\")",
+      "Bash(python3 -c ' *)",
+      "Bash(kill 7327 *)",
+      "Bash(python3 *)"
     ]
   }
 }
