@@ -83,7 +83,7 @@ object ScriptParser {
         val roundDelay = if (json.has("roundDelay")) {
             parseRoundDelay(json.getJSONObject("roundDelay"))
         } else {
-            ScriptConfig().roundDelay
+            RoundDelay()
         }
 
         return ScriptConfig(
